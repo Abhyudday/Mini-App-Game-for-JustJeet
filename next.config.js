@@ -3,7 +3,6 @@ const nextConfig = {
   images: {
     domains: [],
   },
-  output: 'standalone',
   async headers() {
     return [
       {
