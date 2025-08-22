@@ -34,7 +34,7 @@ const Game: React.FC = () => {
     isJumping: false,
     isDead: false,
     redLineY: GROUND_Y,
-    chartSpeed: 1,
+    chartSpeed: 0.5,
   });
 
   const gameLoopRef = useRef<number>();
@@ -96,16 +96,17 @@ const Game: React.FC = () => {
           newVelocity = 0;
         }
 
-        // Red line collision detection
+        // Red candle collision detection - check if character touches any red area
         const characterBottom = newY;
         const characterTop = newY - 50;
-        const redLineBuffer = 10;
+        const characterLeft = prev.characterPosition.x - 25;
+        const characterRight = prev.characterPosition.x + 25;
+        const redLineBuffer = 15;
 
+        // More lenient collision detection - character just needs to overlap with red line area
         const isColliding = 
           characterBottom >= prev.redLineY - redLineBuffer &&
-          characterTop <= prev.redLineY + redLineBuffer &&
-          prev.characterPosition.x >= window.innerWidth * 0.4 &&
-          prev.characterPosition.x <= window.innerWidth * 0.6;
+          characterTop <= prev.redLineY + redLineBuffer;
 
         if (isColliding && !prev.isDead) {
           // Game over
@@ -116,8 +117,8 @@ const Game: React.FC = () => {
           };
         }
 
-        // Increase chart speed gradually
-        const newChartSpeed = Math.min(prev.chartSpeed + 0.001, 3);
+        // Increase chart speed gradually (slower progression)
+        const newChartSpeed = Math.min(prev.chartSpeed + 0.0005, 1.5);
 
         return {
           ...prev,
@@ -194,7 +195,7 @@ const Game: React.FC = () => {
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
-      chartSpeed: 1,
+      chartSpeed: 0.5,
     }));
   }, []);
 

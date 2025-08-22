@@ -102,25 +102,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ currentScore, onBack }) => {
   };
 
   return (
-    <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 25 }}>
+    <div className="absolute inset-0 bg-black flex items-center justify-center p-4" style={{ zIndex: 25 }}>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-gradient-to-b from-gray-800 to-gray-900 rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-hidden border border-gray-600"
+        className="bg-black/90 backdrop-blur-sm rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-hidden border border-green-500/30"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <span className="text-2xl mr-2">🏆</span>
-            <h2 className="text-2xl font-bold text-white">Leaderboard</h2>
+            <h2 className="text-2xl font-black text-white">LEADERBOARD</h2>
           </div>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={onBack}
-            className="text-gray-400 hover:text-white text-2xl transition-colors"
+            className="text-green-400 hover:text-green-300 text-2xl transition-colors font-bold"
           >
             ×
-          </button>
+          </motion.button>
         </div>
 
         {/* Score Submission */}
@@ -128,29 +130,31 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ currentScore, onBack }) => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-xl border border-blue-500/30"
+            className="mb-6 p-4 bg-black/80 backdrop-blur-sm rounded-xl border border-green-500/30"
           >
-            <div className="text-center mb-3">
-              <div className="text-blue-400 text-sm font-semibold">YOUR SCORE</div>
-              <div className="text-white text-2xl font-bold">{currentScore.toLocaleString()}</div>
+            <div className="text-center mb-4">
+              <div className="text-green-400 text-sm font-semibold">YOUR SCORE</div>
+              <div className="text-white text-3xl font-black">{currentScore.toLocaleString()}</div>
             </div>
             
             <div className="space-y-3">
               <input
                 type="text"
-                placeholder="Enter your name"
+                placeholder="Enter your degen name"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-3 bg-gray-900/50 border border-gray-600/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-green-500"
                 maxLength={20}
               />
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={submitScore}
                 disabled={!username.trim() || submitting}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
+                className="w-full bg-green-500 hover:bg-green-400 disabled:bg-gray-600 text-black disabled:text-gray-300 font-bold py-3 px-4 rounded-full transition-all duration-200"
               >
-                {submitting ? 'Submitting...' : 'Submit Score'}
-              </button>
+                {submitting ? 'SUBMITTING...' : 'SUBMIT SCORE'}
+              </motion.button>
             </div>
           </motion.div>
         )}

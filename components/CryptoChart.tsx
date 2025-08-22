@@ -81,8 +81,8 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Update offset for movement
-      offsetRef.current += chartSpeed;
+      // Update offset for movement (slower base speed)
+      offsetRef.current += chartSpeed * 2;
 
       // Add new candles as needed
       const candleSpacing = 16;
@@ -122,15 +122,27 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
       const priceRange = maxPrice - minPrice;
       const padding = priceRange * 0.1;
 
-      // Draw grid lines
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      // Draw improved grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 1;
-      const gridLines = 8;
+      const gridLines = 10;
+      
+      // Horizontal grid lines
       for (let i = 0; i <= gridLines; i++) {
         const y = (canvas.height / gridLines) * i;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+      
+      // Vertical grid lines
+      const verticalLines = Math.floor(canvas.width / 60);
+      for (let i = 0; i <= verticalLines; i++) {
+        const x = (canvas.width / verticalLines) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
         ctx.stroke();
       }
 
@@ -157,26 +169,38 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
         ctx.lineTo(x + candleWidth / 2, lowY);
         ctx.stroke();
 
-        // Draw candle body
+        // Draw candle body with improved graphics
         const bodyHeight = Math.abs(closeY - openY);
         const bodyY = Math.min(openY, closeY);
         
         if (candle.isGreen) {
-          ctx.fillStyle = '#00d4aa';
+          // Green candle gradient
+          const greenGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
+          greenGradient.addColorStop(0, '#00f5d4');
+          greenGradient.addColorStop(1, '#00d4aa');
+          ctx.fillStyle = greenGradient;
           ctx.shadowColor = '#00d4aa';
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 8;
         } else {
-          ctx.fillStyle = '#ff4757';
+          // Red candle gradient
+          const redGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
+          redGradient.addColorStop(0, '#ff6b7a');
+          redGradient.addColorStop(1, '#ff4757');
+          ctx.fillStyle = redGradient;
           ctx.shadowColor = '#ff4757';
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 8;
         }
         
-        ctx.fillRect(x, bodyY, candleWidth, Math.max(bodyHeight, 2));
+        // Draw rounded rectangle for candle body
+        const radius = 2;
+        ctx.beginPath();
+        ctx.roundRect(x, bodyY, candleWidth, Math.max(bodyHeight, 3), radius);
+        ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Report red line position (lowest red candle)
-        if (!candle.isGreen && x > canvas.width * 0.4 && x < canvas.width * 0.6) {
-          onRedLinePosition(lowY);
+        // Report red line position for collision detection (check character area)
+        if (!candle.isGreen && x >= 75 && x <= 125) {
+          onRedLinePosition(bodyY + bodyHeight/2); // Use middle of red candle body
         }
       });
 
