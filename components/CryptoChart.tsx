@@ -40,7 +40,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartOffset, onCandleData }) 
     const generateCandles = () => {
       candlesRef.current = [];
       let basePrice = 100;
-      const candleSpacing = 80; // Increased spacing for jumping
+      const candleSpacing = 60; // Reduced spacing for better flow
 
       for (let i = 0; i < 50; i++) { // Generate enough candles
         const x = i * candleSpacing + 150; // Start with some offset

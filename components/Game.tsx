@@ -72,6 +72,7 @@ const Game: React.FC = () => {
         ...prev,
         characterVelocity: JUMP_FORCE,
         isJumping: true,
+        chartOffset: prev.chartOffset + 15, // Move forward a bit when jumping
       }));
 
       // Reset jumping state after animation
@@ -132,7 +133,7 @@ const Game: React.FC = () => {
                   characterVelocity: 0,
                   currentCandleIndex: nextCandleIndex,
                   score: prev.score + 1,
-                  chartOffset: prev.chartOffset + 50, // Move chart forward
+                  chartOffset: prev.chartOffset + 25, // Additional movement on successful landing (15 from jump + 25 = 40 total)
                   canLand: false,
                 };
               } else {
