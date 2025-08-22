@@ -12,15 +12,14 @@ interface CandleData {
 }
 
 interface CryptoChartProps {
-  chartSpeed: number;
-  onRedLinePosition: (y: number) => void;
+  chartOffset: number;
+  onCandleData: (candles: CandleData[]) => void;
 }
 
-const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition }) => {
+const CryptoChart: React.FC<CryptoChartProps> = ({ chartOffset, onCandleData }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const candlesRef = useRef<CandleData[]>([]);
-  const offsetRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -41,11 +40,10 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
     const generateCandles = () => {
       candlesRef.current = [];
       let basePrice = 100;
-      const candleWidth = 12;
-      const candleSpacing = 16;
+      const candleSpacing = 80; // Increased spacing for jumping
 
-      for (let i = 0; i < Math.ceil(canvas.width / candleSpacing) + 10; i++) {
-        const x = i * candleSpacing;
+      for (let i = 0; i < 50; i++) { // Generate enough candles
+        const x = i * candleSpacing + 150; // Start with some offset
         const volatility = 0.02;
         const trend = 0.001; // Slight upward trend
         
@@ -66,6 +64,9 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
         
         basePrice = close;
       }
+      
+      // Pass candle data to parent
+      onCandleData(candlesRef.current);
     };
 
     generateCandles();
@@ -81,39 +82,12 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Update offset for movement with controlled speed
-      // chartSpeed ranges from 0.3 to 1.0, we apply it directly for consistent movement
-      const actualSpeed = chartSpeed * 1.5; // Simple multiplier for smooth movement
-      offsetRef.current += actualSpeed;
-
-      // Add new candles as needed
-      const candleSpacing = 16;
-      const lastCandle = candlesRef.current[candlesRef.current.length - 1];
-      if (lastCandle && lastCandle.x - offsetRef.current < canvas.width + 50) {
-        const volatility = 0.02;
-        const trend = 0.001;
-        const priceChange = (Math.random() - 0.5) * volatility + trend;
-        const open = lastCandle.close;
-        const close = open * (1 + priceChange);
-        const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-        
-        candlesRef.current.push({
-          x: lastCandle.x + candleSpacing,
-          open,
-          high,
-          low,
-          close,
-          isGreen: close > open
-        });
-      }
-
-      // Remove old candles
-      candlesRef.current = candlesRef.current.filter(candle => candle.x - offsetRef.current > -50);
+      // Chart is now stationary, only offset changes based on game progress
+      // No need to continuously generate or remove candles
 
       // Find price range for scaling
       const visibleCandles = candlesRef.current.filter(candle => {
-        const x = candle.x - offsetRef.current;
+        const x = candle.x - chartOffset;
         return x > -50 && x < canvas.width + 50;
       });
 
@@ -150,8 +124,8 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
 
       // Draw candles
       visibleCandles.forEach(candle => {
-        const x = candle.x - offsetRef.current;
-        const candleWidth = 10;
+        const x = candle.x - chartOffset;
+        const candleWidth = 15; // Slightly wider for better visibility
         
         // Scale prices to canvas height
         const scaleY = (price: number) => {
@@ -200,9 +174,12 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Report red line position for collision detection (check character area)
-        if (!candle.isGreen && x >= 75 && x <= 125) {
-          onRedLinePosition(bodyY + bodyHeight/2); // Use middle of red candle body
+        // Add visual indicators for landing areas
+        if (x >= 75 && x <= 125) { // Character landing area
+          // Draw landing zone indicator
+          ctx.strokeStyle = candle.isGreen ? '#00ff88' : '#ff4444';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x - 5, bodyY - 5, candleWidth + 10, Math.max(bodyHeight, 3) + 10);
         }
       });
 
@@ -227,7 +204,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [chartSpeed, onRedLinePosition]);
+  }, [chartOffset, onCandleData]);
 
   return (
     <canvas

@@ -15,8 +15,9 @@ interface GameState {
   characterVelocity: number;
   isJumping: boolean;
   isDead: boolean;
-  redLineY: number;
-  chartSpeed: number;
+  currentCandleIndex: number;
+  chartOffset: number;
+  canLand: boolean;
 }
 
 const GRAVITY = 0.8;
@@ -33,12 +34,13 @@ const Game: React.FC = () => {
     characterVelocity: 0,
     isJumping: false,
     isDead: false,
-    redLineY: GROUND_Y,
-    chartSpeed: 0.3,
+    currentCandleIndex: 0,
+    chartOffset: 0,
+    canLand: false,
   });
 
   const gameLoopRef = useRef<number>();
-  const scoreIntervalRef = useRef<NodeJS.Timeout>();
+  const candlesRef = useRef<any[]>([]);
   const lastTouchRef = useRef<number>(0);
 
   // Load high score from localStorage
@@ -54,9 +56,9 @@ const Game: React.FC = () => {
     localStorage.setItem('cryptoJumpHighScore', score.toString());
   }, []);
 
-  // Handle red line position updates from chart
-  const handleRedLinePosition = useCallback((y: number) => {
-    setGameState(prev => ({ ...prev, redLineY: y }));
+  // Handle candle data from chart
+  const handleCandleData = useCallback((candles: any[]) => {
+    candlesRef.current = candles;
   }, []);
 
   // Jump function
@@ -89,6 +91,7 @@ const Game: React.FC = () => {
 
         let newVelocity = prev.characterVelocity + GRAVITY;
         let newY = prev.characterPosition.y + newVelocity;
+        let newCanLand = false;
 
         // Ground collision
         if (newY >= GROUND_Y) {
@@ -96,37 +99,59 @@ const Game: React.FC = () => {
           newVelocity = 0;
         }
 
-        // Red candle collision detection - check if character touches any red area
-        const characterBottom = newY;
-        const characterTop = newY - 50;
-        const characterLeft = prev.characterPosition.x - 25;
-        const characterRight = prev.characterPosition.x + 25;
-        const redLineBuffer = 15;
-
-        // More lenient collision detection - character just needs to overlap with red line area
-        const isColliding = 
-          characterBottom >= prev.redLineY - redLineBuffer &&
-          characterTop <= prev.redLineY + redLineBuffer;
-
-        if (isColliding && !prev.isDead) {
-          // Game over
+        // Get current candles
+        const candles = candlesRef.current;
+        if (candles.length === 0) {
           return {
             ...prev,
-            isDead: true,
-            characterVelocity: 0,
+            characterPosition: { ...prev.characterPosition, y: newY },
+            characterVelocity: newVelocity,
+            canLand: newCanLand,
           };
         }
 
-        // Increase chart speed very gradually - starts at 0.3, max 1.0
-        // Speed increases every 50 points by a small amount
-        const scoreBasedSpeed = 0.3 + Math.min(prev.score / 1000, 0.7); // 0.3 to 1.0 range
-        const newChartSpeed = Math.min(scoreBasedSpeed, 1.0);
+        // Find the next candle to jump to
+        const nextCandleIndex = prev.currentCandleIndex + 1;
+        const nextCandle = candles[nextCandleIndex];
+        
+        if (nextCandle) {
+          const candleX = nextCandle.x - prev.chartOffset;
+          const characterX = prev.characterPosition.x;
+          
+          // Check if character is over the next candle
+          if (Math.abs(characterX - candleX) < 30) {
+            newCanLand = true;
+            
+            // Check if character is landing on the candle
+            if (newY >= GROUND_Y - 10 && prev.characterVelocity >= 0) {
+              if (nextCandle.isGreen) {
+                // Successful landing on green candle
+                return {
+                  ...prev,
+                  characterPosition: { ...prev.characterPosition, y: GROUND_Y },
+                  characterVelocity: 0,
+                  currentCandleIndex: nextCandleIndex,
+                  score: prev.score + 1,
+                  chartOffset: prev.chartOffset + 50, // Move chart forward
+                  canLand: false,
+                };
+              } else {
+                // Landed on red candle - game over
+                return {
+                  ...prev,
+                  isDead: true,
+                  characterVelocity: 0,
+                };
+              }
+            }
+          }
+        }
 
         return {
           ...prev,
           characterPosition: { ...prev.characterPosition, y: newY },
           characterVelocity: newVelocity,
-          chartSpeed: newChartSpeed,
+          canLand: newCanLand,
         };
       });
 
@@ -142,27 +167,7 @@ const Game: React.FC = () => {
     };
   }, [gameState.state]);
 
-  // Score increment
-  useEffect(() => {
-    if (gameState.state !== 'playing' || gameState.isDead) {
-      if (scoreIntervalRef.current) {
-        clearInterval(scoreIntervalRef.current);
-        scoreIntervalRef.current = undefined;
-      }
-      return;
-    }
-
-    scoreIntervalRef.current = setInterval(() => {
-      setGameState(prev => ({ ...prev, score: prev.score + 1 }));
-    }, 100);
-
-    return () => {
-      if (scoreIntervalRef.current) {
-        clearInterval(scoreIntervalRef.current);
-        scoreIntervalRef.current = undefined;
-      }
-    };
-  }, [gameState.state, gameState.isDead]);
+  // Score is now incremented directly in the game loop when landing on green candles
 
   // Handle game over
   useEffect(() => {
@@ -197,7 +202,9 @@ const Game: React.FC = () => {
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
-      chartSpeed: 0.3,
+      currentCandleIndex: -1, // Start before the first candle
+      chartOffset: 0,
+      canLand: false,
     }));
   }, []);
 
@@ -261,8 +268,8 @@ const Game: React.FC = () => {
     <div className="game-container">
       {/* Background Chart */}
       <CryptoChart 
-        chartSpeed={gameState.chartSpeed} 
-        onRedLinePosition={handleRedLinePosition}
+        chartOffset={gameState.chartOffset}
+        onCandleData={handleCandleData}
       />
 
       {/* Character */}
@@ -298,8 +305,9 @@ const Game: React.FC = () => {
       {process.env.NODE_ENV === 'development' && gameState.state === 'playing' && (
         <div className="absolute top-4 right-4 bg-black/70 p-2 rounded text-white text-xs" style={{ zIndex: 30 }}>
           <div>Char Y: {gameState.characterPosition.y.toFixed(1)}</div>
-          <div>Red Line: {gameState.redLineY.toFixed(1)}</div>
-          <div>Speed: {gameState.chartSpeed.toFixed(3)}</div>
+          <div>Current Candle: {gameState.currentCandleIndex}</div>
+          <div>Chart Offset: {gameState.chartOffset}</div>
+          <div>Can Land: {gameState.canLand ? 'Yes' : 'No'}</div>
           <div>Score: {gameState.score}</div>
         </div>
       )}
