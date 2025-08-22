@@ -81,8 +81,10 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartSpeed, onRedLinePosition
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Update offset for movement (slower base speed)
-      offsetRef.current += chartSpeed * 2;
+      // Update offset for movement with controlled speed
+      // chartSpeed ranges from 0.3 to 1.0, we apply it directly for consistent movement
+      const actualSpeed = chartSpeed * 1.5; // Simple multiplier for smooth movement
+      offsetRef.current += actualSpeed;
 
       // Add new candles as needed
       const candleSpacing = 16;

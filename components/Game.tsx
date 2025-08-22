@@ -34,7 +34,7 @@ const Game: React.FC = () => {
     isJumping: false,
     isDead: false,
     redLineY: GROUND_Y,
-    chartSpeed: 0.5,
+    chartSpeed: 0.3,
   });
 
   const gameLoopRef = useRef<number>();
@@ -117,8 +117,10 @@ const Game: React.FC = () => {
           };
         }
 
-        // Increase chart speed gradually (slower progression)
-        const newChartSpeed = Math.min(prev.chartSpeed + 0.0005, 1.5);
+        // Increase chart speed very gradually - starts at 0.3, max 1.0
+        // Speed increases every 50 points by a small amount
+        const scoreBasedSpeed = 0.3 + Math.min(prev.score / 1000, 0.7); // 0.3 to 1.0 range
+        const newChartSpeed = Math.min(scoreBasedSpeed, 1.0);
 
         return {
           ...prev,
@@ -195,7 +197,7 @@ const Game: React.FC = () => {
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
-      chartSpeed: 0.5,
+      chartSpeed: 0.3,
     }));
   }, []);
 
@@ -297,7 +299,8 @@ const Game: React.FC = () => {
         <div className="absolute top-4 right-4 bg-black/70 p-2 rounded text-white text-xs" style={{ zIndex: 30 }}>
           <div>Char Y: {gameState.characterPosition.y.toFixed(1)}</div>
           <div>Red Line: {gameState.redLineY.toFixed(1)}</div>
-          <div>Speed: {gameState.chartSpeed.toFixed(2)}</div>
+          <div>Speed: {gameState.chartSpeed.toFixed(3)}</div>
+          <div>Score: {gameState.score}</div>
         </div>
       )}
     </div>
