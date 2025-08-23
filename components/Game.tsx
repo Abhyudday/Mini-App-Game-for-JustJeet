@@ -43,7 +43,7 @@ const Game: React.FC = () => {
     currentCandleIndex: 0,
     cameraX: 0, // Camera starts at 0
     canLand: false,
-    redCandleGraceTime: 800, // 800ms grace period
+    redCandleGraceTime: 500, // 500ms grace period (0.5 seconds)
     lastRedCandleContact: 0,
   });
 
@@ -69,7 +69,21 @@ const Game: React.FC = () => {
   // Handle candle data from chart
   const handleCandleData = useCallback((candles: any[]) => {
     candlesRef.current = candles;
-  }, []);
+    
+    // Fix initial character position when candles are first loaded
+    if (candles.length > 0 && gameState.state === 'playing' && gameState.currentCandleIndex === 0) {
+      const firstCandle = candles[0];
+      if (firstCandle && firstCandle.topY !== undefined) {
+        setGameState(prev => ({
+          ...prev,
+          characterPosition: { 
+            x: firstCandle.x, 
+            y: firstCandle.topY // Place character exactly on first candle
+          }
+        }));
+      }
+    }
+  }, [gameState.state, gameState.currentCandleIndex]);
 
   // Jump function
   const jump = useCallback(() => {
@@ -235,29 +249,41 @@ const Game: React.FC = () => {
                   };
                 }
                               } else {
-                  // Landed on red candle - start grace period
+                  // Landed on red candle - handle grace period
                   const currentTime = Date.now();
-                  const isInGracePeriod = (currentTime - prev.lastRedCandleContact) < prev.redCandleGraceTime;
                   
-                  if (prev.lastRedCandleContact === 0 || !isInGracePeriod) {
-                    // First contact with red candle or grace period expired - start/restart grace period
-                    return {
-                      ...prev,
-                      characterPosition: { x: constrainedCharacterX, y: newY },
-                      characterVelocity: newVelocity,
-                      cameraX: newCameraX,
-                      lastRedCandleContact: currentTime, // Mark the start of grace period
-                      canLand: newCanLand,
-                    };
-                  } else {
-                    // Still in grace period - allow character to stay on red candle
+                  if (prev.lastRedCandleContact === 0) {
+                    // First contact with red candle - start grace period
                     return {
                       ...prev,
                       characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
                       characterVelocity: 0,
                       cameraX: newCameraX,
+                      lastRedCandleContact: currentTime, // Mark the start of grace period
                       canLand: false,
                     };
+                  } else {
+                    // Check if grace period has expired
+                    const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
+                    if (timeSinceRedContact >= prev.redCandleGraceTime) {
+                      // Grace period expired - game over immediately
+                      return {
+                        ...prev,
+                        isDead: true,
+                        characterVelocity: 0,
+                        characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
+                        cameraX: newCameraX,
+                      };
+                    } else {
+                      // Still in grace period - allow character to stay on red candle
+                      return {
+                        ...prev,
+                        characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
+                        characterVelocity: 0,
+                        cameraX: newCameraX,
+                        canLand: false,
+                      };
+                    }
                   }
                 }
             }
@@ -270,19 +296,7 @@ const Game: React.FC = () => {
           newVelocity = 0;
         }
 
-        // Check if grace period has expired while on red candle
-        const currentTime = Date.now();
-        if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
-          const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
-          if (timeSinceRedContact >= prev.redCandleGraceTime) {
-            // Grace period expired - game over
-          return {
-            ...prev,
-            isDead: true,
-            characterVelocity: 0,
-          };
-        }
-        }
+        // Grace period check is now handled in the red candle collision logic above
 
         // Additional safety check - if character is floating with no velocity, snap to ground or nearest candle
         if (!landedOnCandle && Math.abs(newVelocity) < 0.1 && newY < GROUND_Y - 10) {
@@ -373,7 +387,7 @@ const Game: React.FC = () => {
       currentCandleIndex: 0, // Start at first candle
       cameraX: 0,
       canLand: false,
-      redCandleGraceTime: 800, // Reset grace period
+      redCandleGraceTime: 500, // Reset grace period (0.5 seconds)
       lastRedCandleContact: 0,
     }));
     
@@ -494,7 +508,7 @@ const Game: React.FC = () => {
           <div>Candles: {candlesRef.current.length}</div>
           <div className={gameState.lastRedCandleContact > 0 ? 'text-red-400' : ''}>
             Grace: {gameState.lastRedCandleContact > 0 ? 
-              Math.max(0, gameState.redCandleGraceTime - (Date.now() - gameState.lastRedCandleContact)).toFixed(0) + 'ms' : 
+              Math.max(0, gameState.redCandleGraceTime - (Date.now() - gameState.lastRedCandleContact)).toFixed(0) + 'ms (0.5s total)' : 
               'Safe'}
           </div>
         </div>
