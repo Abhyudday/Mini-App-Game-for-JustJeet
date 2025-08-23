@@ -96,7 +96,20 @@ const Game: React.FC = () => {
         
         // Find next candle after current position
         const nextCandle = candles.find(candle => candle.x > prev.characterPosition.x);
-        if (!nextCandle) return prev;
+        
+        // Debug logging
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Jump attempt:', {
+            characterX: prev.characterPosition.x,
+            candlesCount: candles.length,
+            nextCandle: nextCandle ? { x: nextCandle.x, topY: nextCandle.topY } : null
+          });
+        }
+        
+        if (!nextCandle) {
+          console.warn('No next candle found for jump');
+          return prev;
+        }
         
          // Calculate adaptive jump force based on height difference
          let jumpForce = JUMP_FORCE; // Base jump force (-8)
@@ -140,12 +153,26 @@ const Game: React.FC = () => {
         // Final safety check - ensure we have a valid jump force
         const finalJumpForce = (jumpForce && isFinite(jumpForce) && jumpForce < 0) ? jumpForce : JUMP_FORCE;
         
+        // Debug the jump setup
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Jump setup:', {
+            startX: prev.characterPosition.x,
+            targetX: nextCandle.x,
+            distance: nextCandle.x - prev.characterPosition.x,
+            jumpForce: finalJumpForce
+          });
+        }
+        
         return {
           ...prev,
           characterVelocity: finalJumpForce,
           isJumping: true,
-          jumpStartX: prev.characterPosition.x, // Store starting position
-          jumpTargetX: nextCandle.x, // Store target position
+          characterPosition: { 
+            ...prev.characterPosition, 
+            x: nextCandle.x // Immediately move to next candle position
+          },
+          jumpStartX: prev.characterPosition.x, // Store starting position for reference
+          jumpTargetX: nextCandle.x, // Store target position for reference
           jumpProgress: 0, // Start animation
         };
       });
@@ -154,10 +181,9 @@ const Game: React.FC = () => {
       setTimeout(() => {
         setGameState(prev => ({ 
           ...prev, 
-          isJumping: false,
-          jumpProgress: 1 // Mark jump as complete
+          isJumping: false
         }));
-      }, 600); // Match jump duration
+      }, 400); // Shorter duration for simpler jump
     }
   }, [gameState.state, gameState.isDead, gameState.isJumping]);
 
@@ -179,20 +205,8 @@ const Game: React.FC = () => {
         const GROUND_Y = getGroundY();
         let candleTopY = GROUND_Y;
         
-        // Handle smooth jump animation
+        // Character position is now set directly in jump function
         let newX = prev.characterPosition.x;
-        let newJumpProgress = prev.jumpProgress;
-        
-        if (prev.isJumping && prev.jumpProgress < 1) {
-          // Animate X position during jump
-          const jumpDuration = 600; // milliseconds
-          const deltaTime = 16; // Assume 60fps
-          newJumpProgress = Math.min(1, prev.jumpProgress + (deltaTime / jumpDuration));
-          
-          // Use easing function for smooth animation
-          const easeProgress = 1 - Math.pow(1 - newJumpProgress, 3); // Ease out cubic
-          newX = prev.jumpStartX + (prev.jumpTargetX - prev.jumpStartX) * easeProgress;
-        }
 
         // Get viewport dimensions (mobile-safe)
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
@@ -239,6 +253,15 @@ const Game: React.FC = () => {
             Math.abs(candle.x - constrainedCharacterX) < collisionTolerance
           );
           
+          // Debug collision detection
+          if (process.env.NODE_ENV === 'development' && prev.isJumping && Math.random() < 0.05) {
+            console.log('Collision check:', {
+              characterX: constrainedCharacterX,
+              candidateCandles: candles.filter(c => Math.abs(c.x - constrainedCharacterX) < collisionTolerance + 20).map(c => ({x: c.x, distance: Math.abs(c.x - constrainedCharacterX)})),
+              foundCandle: characterCandle ? { x: characterCandle.x, distance: Math.abs(characterCandle.x - constrainedCharacterX) } : null
+            });
+          }
+          
           if (characterCandle) {
             // Use the actual visual candle top position if available, otherwise fallback
             const candleBodyTopY = characterCandle.topY !== undefined ? characterCandle.topY : (GROUND_Y - 50);
@@ -246,14 +269,18 @@ const Game: React.FC = () => {
             
             // Mobile-responsive collision detection for better landing
             const characterBottom = newY;
-            const landingTolerance = Math.max(8, Math.min(15, viewportHeight * 0.02)); // Scale with screen height
-            const fallTolerance = Math.max(12, Math.min(25, viewportHeight * 0.03)); // Scale with screen height
-            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < landingTolerance;
-            const isFallingOntoCandle = prev.characterVelocity >= 0 && 
-              characterBottom >= candleBodyTopY - landingTolerance && 
-              characterBottom <= candleBodyTopY + fallTolerance;
+            const landingTolerance = Math.max(15, Math.min(25, viewportHeight * 0.03)); // Increased tolerance
             
-            if (isOnCandle || isFallingOntoCandle) {
+            // Character should land on candle if falling and within horizontal range
+            const isAboveCandle = characterBottom <= candleBodyTopY + landingTolerance;
+            const isFallingOntoCandle = prev.characterVelocity >= 0 && 
+              characterBottom >= candleBodyTopY - 10 && 
+              characterBottom <= candleBodyTopY + landingTolerance;
+            
+            // Always snap to candle top if character is near it
+            const shouldLandOnCandle = isFallingOntoCandle || (isAboveCandle && Math.abs(characterBottom - candleBodyTopY) < landingTolerance);
+            
+            if (shouldLandOnCandle) {
               if (characterCandle.isGreen) {
                 // Snap to exact candle top position
                 newY = candleBodyTopY;
@@ -288,40 +315,91 @@ const Game: React.FC = () => {
                   // Landed on red candle - handle grace period
                   const currentTime = Date.now();
                   
+                  // Always allow character to land on red candle first
+                  newY = candleBodyTopY;
+                  newVelocity = 0;
+                  landedOnCandle = true;
+                  
                   if (prev.lastRedCandleContact === 0) {
                     // First contact with red candle - start grace period
+                    const newCandleIndex = candles.indexOf(characterCandle);
                     return {
                       ...prev,
-                      characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
+                      characterPosition: { x: constrainedCharacterX, y: newY },
                       characterVelocity: 0,
                       cameraX: newCameraX,
                       lastRedCandleContact: currentTime, // Mark the start of grace period
                       canLand: false,
+                      currentCandleIndex: Math.max(newCandleIndex, prev.currentCandleIndex), // Update candle index
                     };
                   } else {
-                    // Check if grace period has expired
-                    const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
-                    if (timeSinceRedContact >= prev.redCandleGraceTime) {
-                      // Grace period expired - game over immediately
-                      return {
-                        ...prev,
-                        isDead: true,
-                        characterVelocity: 0,
-                        characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
-                        cameraX: newCameraX,
-                      };
-                    } else {
-                      // Still in grace period - allow character to stay on red candle
-                      return {
-                        ...prev,
-                        characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
-                        characterVelocity: 0,
-                        cameraX: newCameraX,
-                        canLand: false,
-                      };
-                    }
+                    // Continue staying on red candle - grace period check will happen later
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: newY },
+                      characterVelocity: 0,
+                      cameraX: newCameraX,
+                      canLand: false,
+                    };
                   }
                 }
+            } else {
+              // Character is near candle but not landing - prevent going below candle
+              if (characterBottom > candleBodyTopY + 5) {
+                // Character is below candle top - snap to candle top
+                newY = candleBodyTopY;
+                newVelocity = 0;
+                
+                // Determine if it's green or red candle for game logic
+                if (characterCandle.isGreen) {
+                  // Safe on green candle
+                  const newCandleIndex = candles.indexOf(characterCandle);
+                  if (newCandleIndex > prev.currentCandleIndex) {
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: newY },
+                      characterVelocity: 0,
+                      currentCandleIndex: newCandleIndex,
+                      score: prev.score + 1,
+                      cameraX: newCameraX,
+                      canLand: false,
+                      lastRedCandleContact: 0,
+                    };
+                  } else {
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: newY },
+                      characterVelocity: 0,
+                      cameraX: newCameraX,
+                      canLand: false,
+                      lastRedCandleContact: 0,
+                    };
+                  }
+                } else {
+                  // Red candle - start grace period if first contact
+                  const currentTime = Date.now();
+                  if (prev.lastRedCandleContact === 0) {
+                    // First contact - start grace period
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: newY },
+                      characterVelocity: 0,
+                      cameraX: newCameraX,
+                      lastRedCandleContact: currentTime,
+                      canLand: false,
+                    };
+                  } else {
+                    // Already on red candle - continue (grace period check happens elsewhere)
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: newY },
+                      characterVelocity: 0,
+                      cameraX: newCameraX,
+                      canLand: false,
+                    };
+                  }
+                }
+              }
             }
           }
         }
@@ -332,7 +410,19 @@ const Game: React.FC = () => {
           newVelocity = 0;
         }
 
-        // Grace period check is now handled in the red candle collision logic above
+        // Check if grace period has expired while on red candle
+        if (prev.lastRedCandleContact > 0 && !prev.isDead) {
+          const currentTime = Date.now();
+          const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
+          if (timeSinceRedContact >= prev.redCandleGraceTime) {
+            // Grace period expired - game over
+            return {
+              ...prev,
+              isDead: true,
+              characterVelocity: 0,
+            };
+          }
+        }
 
         // Additional safety check - if character is floating with no velocity, snap to ground or nearest candle
         if (!landedOnCandle && Math.abs(newVelocity) < 0.1 && newY < GROUND_Y - 10) {
@@ -367,7 +457,6 @@ const Game: React.FC = () => {
           characterVelocity: newVelocity,
           cameraX: newCameraX,
           canLand: newCanLand,
-          jumpProgress: newJumpProgress,
         };
       });
 
