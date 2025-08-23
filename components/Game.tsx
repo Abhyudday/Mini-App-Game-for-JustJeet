@@ -172,20 +172,33 @@ const Game: React.FC = () => {
           newY = prev.characterPosition.y + newVelocity;
         }
         if (candles.length > 0) {
-          // Check for candle collision (character standing on candle)
-          const characterCandle = candles.find(candle => 
-            Math.abs(candle.x - constrainedCharacterX) < 40 // Increased tolerance and use constrained position
+          // Find all candles near the character for better collision detection
+          const nearbyCandles = candles.filter(candle => 
+            Math.abs(candle.x - constrainedCharacterX) < 50
           );
+          
+          // Sort by distance to character and pick the closest one
+          const characterCandle = nearbyCandles.length > 0 ? 
+            nearbyCandles.reduce((closest, candle) => 
+              Math.abs(candle.x - constrainedCharacterX) < Math.abs(closest.x - constrainedCharacterX) ? candle : closest
+            ) : null;
           
           if (characterCandle) {
             // Use the actual visual candle top position if available, otherwise fallback
             const candleBodyTopY = characterCandle.topY !== undefined ? characterCandle.topY : (GROUND_Y - 50);
             candleTopY = candleBodyTopY;
             
-            // More lenient collision detection for better landing
-            const characterBottom = newY;
-            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < 10; // Increased tolerance
-            const isFallingOntoCandle = prev.characterVelocity >= 0 && characterBottom >= candleBodyTopY - 10 && characterBottom <= candleBodyTopY + 20; // More lenient range
+            // More precise collision detection
+        const characterBottom = newY;
+            const horizontalDistance = Math.abs(characterCandle.x - constrainedCharacterX);
+            const verticalDistance = Math.abs(characterBottom - candleBodyTopY);
+            
+            // Check if character is close enough horizontally and vertically
+            const isOnCandle = horizontalDistance < 35 && verticalDistance < 8;
+            const isFallingOntoCandle = prev.characterVelocity >= 0 && 
+                                      horizontalDistance < 35 && 
+                                      characterBottom >= candleBodyTopY - 8 && 
+                                      characterBottom <= candleBodyTopY + 15;
             
             if (isOnCandle || isFallingOntoCandle) {
               if (characterCandle.isGreen) {
@@ -248,11 +261,7 @@ const Game: React.FC = () => {
           }
         }
 
-        // Ground collision (fallback if not landed on candle)
-        if (!landedOnCandle && newY >= GROUND_Y) {
-          newY = GROUND_Y;
-          newVelocity = 0;
-        }
+
 
         // Check if grace period has expired while on red candle
         const currentTime = Date.now();
@@ -268,27 +277,49 @@ const Game: React.FC = () => {
         }
         }
 
-        // Additional safety check - if character is floating with no velocity, snap to ground or nearest candle
-        if (!landedOnCandle && Math.abs(newVelocity) < 0.1 && newY < GROUND_Y - 10) {
-          // Find the closest candle below the character
-          const candidateCandles = candles.filter(candle => 
-            Math.abs(candle.x - constrainedCharacterX) < 50 && 
-            candle.topY !== undefined && 
-            candle.topY >= newY - 20
-          );
-          
-          if (candidateCandles.length > 0) {
-            const closestCandle = candidateCandles.reduce((closest, candle) => 
-              Math.abs(candle.x - constrainedCharacterX) < Math.abs(closest.x - constrainedCharacterX) ? candle : closest
-            );
+        // Enhanced safety check - prevent character from floating
+        if (!landedOnCandle) {
+          // If character is floating with low velocity, find the nearest candle to land on
+          if (Math.abs(newVelocity) < 1.0 && newY < GROUND_Y - 5) {
+            // Find the closest candle that the character could reasonably land on
+            const candidateCandles = candles.filter(candle => {
+              const horizontalDistance = Math.abs(candle.x - constrainedCharacterX);
+              const hasValidTopY = candle.topY !== undefined;
+              const isCloseVertically = hasValidTopY && Math.abs(candle.topY - newY) < 30;
+              
+              return horizontalDistance < 40 && hasValidTopY && isCloseVertically;
+            });
             
-            if (closestCandle.isGreen && closestCandle.topY !== undefined) {
-              newY = closestCandle.topY;
-              newVelocity = 0;
-              landedOnCandle = true;
+            if (candidateCandles.length > 0) {
+              // Find the closest candle horizontally
+              const closestCandle = candidateCandles.reduce((closest, candle) => 
+                Math.abs(candle.x - constrainedCharacterX) < Math.abs(closest.x - constrainedCharacterX) ? candle : closest
+              );
+              
+              // Land on the closest candle (green or red)
+              if (closestCandle.topY !== undefined) {
+                newY = closestCandle.topY;
+                newVelocity = 0;
+                landedOnCandle = true;
+                
+                // If it's a red candle, start the grace period
+                if (!closestCandle.isGreen) {
+                  const currentTime = Date.now();
+                  return {
+                    ...prev,
+                    characterPosition: { x: constrainedCharacterX, y: newY },
+                    characterVelocity: 0,
+                    cameraX: newCameraX,
+                    lastRedCandleContact: currentTime,
+                    canLand: false,
+                  };
+                }
+              }
             }
-          } else {
-            // No suitable candle found, fall to ground
+          }
+          
+          // Final fallback - if still floating and no candle found, fall to ground
+          if (!landedOnCandle && newY >= GROUND_Y) {
             newY = GROUND_Y;
             newVelocity = 0;
           }
@@ -464,24 +495,7 @@ const Game: React.FC = () => {
         />
       )}
 
-      {/* Debug info (remove in production) */}
-      {process.env.NODE_ENV === 'development' && gameState.state === 'playing' && (
-        <div className="absolute top-4 right-4 bg-black/70 p-2 rounded text-white text-xs" style={{ zIndex: 30 }}>
-          <div>Char Y: {gameState.characterPosition.y.toFixed(1)}</div>
-          <div>Current Candle: {gameState.currentCandleIndex}</div>
-          <div>Camera X: {gameState.cameraX.toFixed(1)}</div>
-          <div>Char World X: {gameState.characterPosition.x.toFixed(1)}</div>
-          <div>Can Land: {gameState.canLand ? 'Yes' : 'No'}</div>
-          <div>Score: {gameState.score}</div>
-          <div>Velocity: {gameState.characterVelocity.toFixed(1)}</div>
-          <div>Candles: {candlesRef.current.length}</div>
-          <div className={gameState.lastRedCandleContact > 0 ? 'text-red-400' : ''}>
-            Grace: {gameState.lastRedCandleContact > 0 ? 
-              Math.max(0, gameState.redCandleGraceTime - (Date.now() - gameState.lastRedCandleContact)).toFixed(0) + 'ms' : 
-              'Safe'}
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };
