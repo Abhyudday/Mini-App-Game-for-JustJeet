@@ -12,11 +12,11 @@ interface CandleData {
 }
 
 interface CryptoChartProps {
-  chartOffset: number;
+  cameraX: number;
   onCandleData: (candles: CandleData[]) => void;
 }
 
-const CryptoChart: React.FC<CryptoChartProps> = ({ chartOffset, onCandleData }) => {
+const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const candlesRef = useRef<CandleData[]>([]);
@@ -87,7 +87,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartOffset, onCandleData }) 
 
       // Find price range for scaling
       const visibleCandles = candlesRef.current.filter(candle => {
-        const x = candle.x - chartOffset;
+        const x = candle.x - cameraX;
         return x > -50 && x < canvas.width + 50;
       });
 
@@ -124,7 +124,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartOffset, onCandleData }) 
 
       // Draw candles
       visibleCandles.forEach(candle => {
-        const x = candle.x - chartOffset;
+        const x = candle.x - cameraX;
         const candleWidth = 15; // Slightly wider for better visibility
         
         // Scale prices to canvas height
@@ -204,7 +204,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ chartOffset, onCandleData }) 
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [chartOffset, onCandleData]);
+  }, [cameraX, onCandleData]);
 
   return (
     <canvas

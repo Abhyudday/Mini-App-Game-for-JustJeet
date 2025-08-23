@@ -16,7 +16,7 @@ interface GameState {
   isJumping: boolean;
   isDead: boolean;
   currentCandleIndex: number;
-  chartOffset: number;
+  cameraX: number; // Camera position that follows character
   canLand: boolean;
 }
 
@@ -30,12 +30,12 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: CHARACTER_X, y: GROUND_Y },
+    characterPosition: { x: 150, y: GROUND_Y }, // Start at first candle position
     characterVelocity: 0,
     isJumping: false,
     isDead: false,
     currentCandleIndex: 0,
-    chartOffset: 0,
+    cameraX: 0, // Camera starts at 0
     canLand: false,
   });
 
@@ -68,12 +68,18 @@ const Game: React.FC = () => {
     lastTouchRef.current = now;
 
     if (gameState.state === 'playing' && !gameState.isDead) {
-      setGameState(prev => ({
-        ...prev,
-        characterVelocity: JUMP_FORCE,
-        isJumping: true,
-        chartOffset: prev.chartOffset + 15, // Move forward a bit when jumping
-      }));
+      setGameState(prev => {
+        const nextCandleX = (prev.currentCandleIndex + 1) * 60 + 150; // Calculate next candle position
+        return {
+          ...prev,
+          characterVelocity: JUMP_FORCE,
+          isJumping: true,
+          characterPosition: { 
+            ...prev.characterPosition, 
+            x: nextCandleX // Move character to next candle position
+          },
+        };
+      });
 
       // Reset jumping state after animation
       setTimeout(() => {
@@ -100,6 +106,11 @@ const Game: React.FC = () => {
           newVelocity = 0;
         }
 
+        // Update camera to follow character (Mario-style)
+        const screenCenter = window.innerWidth / 2;
+        const cameraTargetX = prev.characterPosition.x - screenCenter;
+        const newCameraX = Math.max(0, cameraTargetX); // Don't go below 0
+
         // Get current candles
         const candles = candlesRef.current;
         if (candles.length === 0) {
@@ -107,43 +118,41 @@ const Game: React.FC = () => {
             ...prev,
             characterPosition: { ...prev.characterPosition, y: newY },
             characterVelocity: newVelocity,
+            cameraX: newCameraX,
             canLand: newCanLand,
           };
         }
 
-        // Find the next candle to jump to
-        const nextCandleIndex = prev.currentCandleIndex + 1;
-        const nextCandle = candles[nextCandleIndex];
-        
-        if (nextCandle) {
-          const candleX = nextCandle.x - prev.chartOffset;
-          const characterX = prev.characterPosition.x;
+        // Check collision with candles when landing
+        if (newY >= GROUND_Y - 10 && prev.characterVelocity >= 0 && newVelocity === 0) {
+          // Find candle at character position
+          const characterCandle = candles.find(candle => 
+            Math.abs(candle.x - prev.characterPosition.x) < 30
+          );
           
-          // Check if character is over the next candle
-          if (Math.abs(characterX - candleX) < 30) {
-            newCanLand = true;
-            
-            // Check if character is landing on the candle
-            if (newY >= GROUND_Y - 10 && prev.characterVelocity >= 0) {
-              if (nextCandle.isGreen) {
-                // Successful landing on green candle
+          if (characterCandle) {
+            if (characterCandle.isGreen) {
+              // Successful landing on green candle
+              const newCandleIndex = candles.indexOf(characterCandle);
+              if (newCandleIndex > prev.currentCandleIndex) {
                 return {
                   ...prev,
                   characterPosition: { ...prev.characterPosition, y: GROUND_Y },
                   characterVelocity: 0,
-                  currentCandleIndex: nextCandleIndex,
+                  currentCandleIndex: newCandleIndex,
                   score: prev.score + 1,
-                  chartOffset: prev.chartOffset + 25, // Additional movement on successful landing (15 from jump + 25 = 40 total)
+                  cameraX: newCameraX,
                   canLand: false,
                 };
-              } else {
-                // Landed on red candle - game over
-                return {
-                  ...prev,
-                  isDead: true,
-                  characterVelocity: 0,
-                };
               }
+            } else {
+              // Landed on red candle - game over
+              return {
+                ...prev,
+                isDead: true,
+                characterVelocity: 0,
+                cameraX: newCameraX,
+              };
             }
           }
         }
@@ -152,6 +161,7 @@ const Game: React.FC = () => {
           ...prev,
           characterPosition: { ...prev.characterPosition, y: newY },
           characterVelocity: newVelocity,
+          cameraX: newCameraX,
           canLand: newCanLand,
         };
       });
@@ -199,12 +209,12 @@ const Game: React.FC = () => {
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: CHARACTER_X, y: GROUND_Y },
+      characterPosition: { x: 150, y: GROUND_Y }, // Start at first candle
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
-      currentCandleIndex: -1, // Start before the first candle
-      chartOffset: 0,
+      currentCandleIndex: 0, // Start at first candle
+      cameraX: 0,
       canLand: false,
     }));
   }, []);
@@ -269,14 +279,17 @@ const Game: React.FC = () => {
     <div className="game-container">
       {/* Background Chart */}
       <CryptoChart 
-        chartOffset={gameState.chartOffset}
+        cameraX={gameState.cameraX}
         onCandleData={handleCandleData}
       />
 
       {/* Character */}
       {(gameState.state === 'playing' || gameState.state === 'gameOver') && (
         <Character
-          position={gameState.characterPosition}
+          position={{ 
+            x: gameState.characterPosition.x - gameState.cameraX, // Adjust for camera position
+            y: gameState.characterPosition.y 
+          }}
           isJumping={gameState.isJumping}
           isDead={gameState.isDead}
         />
@@ -307,7 +320,8 @@ const Game: React.FC = () => {
         <div className="absolute top-4 right-4 bg-black/70 p-2 rounded text-white text-xs" style={{ zIndex: 30 }}>
           <div>Char Y: {gameState.characterPosition.y.toFixed(1)}</div>
           <div>Current Candle: {gameState.currentCandleIndex}</div>
-          <div>Chart Offset: {gameState.chartOffset}</div>
+          <div>Camera X: {gameState.cameraX.toFixed(1)}</div>
+          <div>Char World X: {gameState.characterPosition.x.toFixed(1)}</div>
           <div>Can Land: {gameState.canLand ? 'Yes' : 'No'}</div>
           <div>Score: {gameState.score}</div>
         </div>
