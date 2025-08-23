@@ -21,7 +21,7 @@ interface GameState {
 }
 
 const GRAVITY = 0.8;
-const JUMP_FORCE = -15;
+const JUMP_FORCE = -12; // Reduced jump force for controlled landing
 const GROUND_Y = 400;
 const CHARACTER_X = 100;
 
@@ -30,7 +30,7 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: 150, y: GROUND_Y }, // Start at first candle position
+    characterPosition: { x: 150, y: GROUND_Y - 40 }, // Start on first candle body top
     characterVelocity: 0,
     isJumping: false,
     isDead: false,
@@ -38,6 +38,8 @@ const Game: React.FC = () => {
     cameraX: 0, // Camera starts at 0
     canLand: false,
   });
+
+  const [resetChart, setResetChart] = useState(false);
 
   const gameLoopRef = useRef<number>();
   const candlesRef = useRef<any[]>([]);
@@ -64,19 +66,26 @@ const Game: React.FC = () => {
   // Jump function
   const jump = useCallback(() => {
     const now = Date.now();
-    if (now - lastTouchRef.current < 200) return; // Prevent double taps
+    if (now - lastTouchRef.current < 300) return; // Prevent rapid taps
     lastTouchRef.current = now;
 
-    if (gameState.state === 'playing' && !gameState.isDead) {
+    if (gameState.state === 'playing' && !gameState.isDead && !gameState.isJumping) {
       setGameState(prev => {
-        const nextCandleX = (prev.currentCandleIndex + 1) * 60 + 150; // Calculate next candle position
+        // Find the next candle position
+        const candles = candlesRef.current;
+        if (candles.length === 0) return prev;
+        
+        // Find next candle after current position
+        const nextCandle = candles.find(candle => candle.x > prev.characterPosition.x);
+        if (!nextCandle) return prev;
+        
         return {
           ...prev,
           characterVelocity: JUMP_FORCE,
           isJumping: true,
           characterPosition: { 
             ...prev.characterPosition, 
-            x: nextCandleX // Move character to next candle position
+            x: nextCandle.x // Jump directly to next candle position
           },
         };
       });
@@ -84,9 +93,9 @@ const Game: React.FC = () => {
       // Reset jumping state after animation
       setTimeout(() => {
         setGameState(prev => ({ ...prev, isJumping: false }));
-      }, 300);
+      }, 400);
     }
-  }, [gameState.state, gameState.isDead]);
+  }, [gameState.state, gameState.isDead, gameState.isJumping]);
 
   // Game loop
   useEffect(() => {
@@ -96,15 +105,14 @@ const Game: React.FC = () => {
       setGameState(prev => {
         if (prev.state !== 'playing' || prev.isDead) return prev;
 
-        let newVelocity = prev.characterVelocity + GRAVITY;
+        // Apply gravity with slight adjustment for better landing control
+        let gravityForce = GRAVITY;
+        
+        let newVelocity = prev.characterVelocity + gravityForce;
         let newY = prev.characterPosition.y + newVelocity;
         let newCanLand = false;
-
-        // Ground collision
-        if (newY >= GROUND_Y) {
-          newY = GROUND_Y;
-          newVelocity = 0;
-        }
+        let landedOnCandle = false;
+        let candleTopY = GROUND_Y;
 
         // Update camera to follow character (Mario-style)
         const screenCenter = window.innerWidth / 2;
@@ -113,48 +121,77 @@ const Game: React.FC = () => {
 
         // Get current candles
         const candles = candlesRef.current;
-        if (candles.length === 0) {
-          return {
-            ...prev,
-            characterPosition: { ...prev.characterPosition, y: newY },
-            characterVelocity: newVelocity,
-            cameraX: newCameraX,
-            canLand: newCanLand,
-          };
+        
+        // Reduce gravity slightly when approaching a candle for smoother landing
+        const nearCandle = candles.find(candle => 
+          Math.abs(candle.x - prev.characterPosition.x) < 35
+        );
+        if (nearCandle && prev.characterVelocity > 0 && prev.characterPosition.y > GROUND_Y - 60) {
+          gravityForce = GRAVITY * 0.7; // Reduce gravity for smoother landing
+          // Recalculate velocity with adjusted gravity
+          newVelocity = prev.characterVelocity + gravityForce;
+          newY = prev.characterPosition.y + newVelocity;
         }
-
-        // Check collision with candles when landing
-        if (newY >= GROUND_Y - 10 && prev.characterVelocity >= 0 && newVelocity === 0) {
-          // Find candle at character position
+        if (candles.length > 0) {
+          // Check for candle collision (character standing on candle)
           const characterCandle = candles.find(candle => 
-            Math.abs(candle.x - prev.characterPosition.x) < 30
+            Math.abs(candle.x - prev.characterPosition.x) < 35
           );
           
           if (characterCandle) {
-            if (characterCandle.isGreen) {
-              // Successful landing on green candle
-              const newCandleIndex = candles.indexOf(characterCandle);
-              if (newCandleIndex > prev.currentCandleIndex) {
+            // Calculate candle body top position (not the wick)
+            // The candle body is the thick rectangular part, wicks are thin lines
+            const candleBodyHeight = 40; // Height of the thick candle body above ground
+            const candleBodyTopY = GROUND_Y - candleBodyHeight;
+            candleTopY = candleBodyTopY;
+            
+            // If character is falling and approaching candle body top
+            if (prev.characterVelocity >= 0 && newY >= candleBodyTopY - 3) {
+              if (characterCandle.isGreen) {
+                // Land and stay on green candle body (thick part)
+                newY = candleBodyTopY;
+                newVelocity = 0;
+                landedOnCandle = true;
+                
+                // Check if this is a new candle for scoring
+                const newCandleIndex = candles.indexOf(characterCandle);
+                if (newCandleIndex > prev.currentCandleIndex) {
+                  return {
+                    ...prev,
+                    characterPosition: { ...prev.characterPosition, y: newY },
+                    characterVelocity: 0,
+                    currentCandleIndex: newCandleIndex,
+                    score: prev.score + 1,
+                    cameraX: newCameraX,
+                    canLand: false,
+                  };
+                } else {
+                  // Already on this candle, just stay on it
+                  return {
+                    ...prev,
+                    characterPosition: { ...prev.characterPosition, y: newY },
+                    characterVelocity: 0,
+                    cameraX: newCameraX,
+                    canLand: false,
+                  };
+                }
+              } else {
+                // Landed on red candle - game over
                 return {
                   ...prev,
-                  characterPosition: { ...prev.characterPosition, y: GROUND_Y },
+                  isDead: true,
                   characterVelocity: 0,
-                  currentCandleIndex: newCandleIndex,
-                  score: prev.score + 1,
                   cameraX: newCameraX,
-                  canLand: false,
                 };
               }
-            } else {
-              // Landed on red candle - game over
-              return {
-                ...prev,
-                isDead: true,
-                characterVelocity: 0,
-                cameraX: newCameraX,
-              };
             }
           }
+        }
+
+        // Ground collision (only if not landed on candle)
+        if (!landedOnCandle && newY >= GROUND_Y) {
+          newY = GROUND_Y;
+          newVelocity = 0;
         }
 
         return {
@@ -205,11 +242,14 @@ const Game: React.FC = () => {
 
   // Event handlers
   const startGame = useCallback(() => {
+    // Only reset chart if it's the very first game or if requested
+    setResetChart(candlesRef.current.length === 0);
+    
     setGameState(prev => ({
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: 150, y: GROUND_Y }, // Start at first candle
+      characterPosition: { x: 150, y: GROUND_Y - 40 }, // Start on first candle body top
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
@@ -217,6 +257,9 @@ const Game: React.FC = () => {
       cameraX: 0,
       canLand: false,
     }));
+    
+    // Reset the resetChart flag after a short delay
+    setTimeout(() => setResetChart(false), 100);
   }, []);
 
   const restartGame = useCallback(() => {
@@ -281,6 +324,7 @@ const Game: React.FC = () => {
       <CryptoChart 
         cameraX={gameState.cameraX}
         onCandleData={handleCandleData}
+        resetChart={resetChart}
       />
 
       {/* Character */}

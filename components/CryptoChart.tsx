@@ -9,14 +9,17 @@ interface CandleData {
   low: number;
   close: number;
   isGreen: boolean;
+  topY?: number; // Visual top position of candle body
+  bottomY?: number; // Visual bottom position of candle body
 }
 
 interface CryptoChartProps {
   cameraX: number;
   onCandleData: (candles: CandleData[]) => void;
+  resetChart?: boolean; // Optional prop to reset the chart
 }
 
-const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
+const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetChart }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const candlesRef = useRef<CandleData[]>([]);
@@ -36,40 +39,93 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Generate initial candles
-    const generateCandles = () => {
-      candlesRef.current = [];
-      let basePrice = 100;
-      const candleSpacing = 60; // Reduced spacing for better flow
+    // Initialize candles only if empty or reset requested
+    const initializeCandles = () => {
+      if (candlesRef.current.length === 0 || resetChart) {
+        candlesRef.current = []; // Clear existing candles if reset requested
+        let basePrice = 100;
+        const candleSpacing = 60;
 
-      for (let i = 0; i < 50; i++) { // Generate enough candles
-        const x = i * candleSpacing + 150; // Start with some offset
-        const volatility = 0.02;
-        const trend = 0.001; // Slight upward trend
+        // Generate initial set of candles
+        for (let i = 0; i < 10; i++) { // Start with fewer candles
+          const x = i * candleSpacing + 150;
+          const volatility = 0.02;
+          const trend = 0.001;
+          
+          let priceChange, open, close, high, low, isGreen;
+          
+          // First 3 candles are always green for easier start
+          if (i < 3) {
+            priceChange = Math.abs((Math.random() - 0.5) * volatility) + 0.005;
+            open = basePrice;
+            close = basePrice * (1 + priceChange);
+            high = close * (1 + Math.random() * 0.01);
+            low = Math.min(open, close) * (1 - Math.random() * 0.005);
+            isGreen = true;
+          } else {
+            priceChange = (Math.random() - 0.5) * volatility + trend;
+            open = basePrice;
+            close = basePrice * (1 + priceChange);
+            high = Math.max(open, close) * (1 + Math.random() * 0.01);
+            low = Math.min(open, close) * (1 - Math.random() * 0.01);
+            isGreen = close > open;
+          }
+          
+          candlesRef.current.push({
+            x,
+            open,
+            high,
+            low,
+            close,
+            isGreen
+          });
+          
+          basePrice = close;
+        }
         
-        const priceChange = (Math.random() - 0.5) * volatility + trend;
-        const open = basePrice;
-        const close = basePrice * (1 + priceChange);
-        const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-        
-        candlesRef.current.push({
-          x,
-          open,
-          high,
-          low,
-          close,
-          isGreen: close > open
-        });
-        
-        basePrice = close;
+        // Pass initial candle data to parent
+        onCandleData(candlesRef.current);
       }
-      
-      // Pass candle data to parent
-      onCandleData(candlesRef.current);
     };
 
-    generateCandles();
+    // Add new candles as needed based on camera position
+    const addCandlesIfNeeded = () => {
+      const lastCandle = candlesRef.current[candlesRef.current.length - 1];
+      const candleSpacing = 60;
+      
+      // Add new candles if camera is getting close to the end
+      if (lastCandle && lastCandle.x - cameraX < canvas.width + 200) {
+        const volatility = 0.02;
+        const trend = 0.001;
+        let basePrice = lastCandle.close;
+        
+        // Add 5 new candles at a time
+        for (let i = 0; i < 5; i++) {
+          const x = lastCandle.x + candleSpacing * (i + 1);
+          const priceChange = (Math.random() - 0.5) * volatility + trend;
+          const open = basePrice;
+          const close = basePrice * (1 + priceChange);
+          const high = Math.max(open, close) * (1 + Math.random() * 0.01);
+          const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+          
+          candlesRef.current.push({
+            x,
+            open,
+            high,
+            low,
+            close,
+            isGreen: close > open
+          });
+          
+          basePrice = close;
+        }
+        
+        // Update parent with new candles
+        onCandleData(candlesRef.current);
+      }
+    };
+
+    initializeCandles();
 
     // Animation loop
     const animate = () => {
@@ -82,8 +138,8 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Chart is now stationary, only offset changes based on game progress
-      // No need to continuously generate or remove candles
+      // Add new candles as player progresses
+      addCandlesIfNeeded();
 
       // Find price range for scaling
       const visibleCandles = candlesRef.current.filter(candle => {
@@ -125,7 +181,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
       // Draw candles
       visibleCandles.forEach(candle => {
         const x = candle.x - cameraX;
-        const candleWidth = 15; // Slightly wider for better visibility
+        const candleWidth = 25; // Broader candles for better visibility
         
         // Scale prices to canvas height
         const scaleY = (price: number) => {
@@ -139,7 +195,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
 
         // Draw wick
         ctx.strokeStyle = candle.isGreen ? '#00d4aa' : '#ff4757';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3; // Slightly thicker wick for broader candles
         ctx.beginPath();
         ctx.moveTo(x + candleWidth / 2, highY);
         ctx.lineTo(x + candleWidth / 2, lowY);
@@ -175,11 +231,11 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
         ctx.shadowBlur = 0;
 
         // Add visual indicators for landing areas
-        if (x >= 75 && x <= 125) { // Character landing area
+        if (x >= 50 && x <= 150) { // Wider character landing area for broader candles
           // Draw landing zone indicator
           ctx.strokeStyle = candle.isGreen ? '#00ff88' : '#ff4444';
-          ctx.lineWidth = 3;
-          ctx.strokeRect(x - 5, bodyY - 5, candleWidth + 10, Math.max(bodyHeight, 3) + 10);
+          ctx.lineWidth = 4;
+          ctx.strokeRect(x - 8, bodyY - 8, candleWidth + 16, Math.max(bodyHeight, 3) + 16);
         }
       });
 
@@ -204,7 +260,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [cameraX, onCandleData]);
+  }, [cameraX, onCandleData, resetChart]);
 
   return (
     <canvas
