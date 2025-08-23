@@ -46,7 +46,7 @@ const Game: React.FC = () => {
     currentCandleIndex: 0,
     cameraX: 0, // Camera starts at 0
     canLand: false,
-    redCandleGraceTime: 500, // 500ms grace period (0.5 seconds)
+    redCandleGraceTime: 800, // 800ms grace period (0.8 seconds)
     lastRedCandleContact: 0,
     jumpStartX: 150,
     jumpTargetX: 150,
@@ -552,7 +552,7 @@ const Game: React.FC = () => {
       currentCandleIndex: 0, // Start at first candle
       cameraX: 0,
       canLand: false,
-      redCandleGraceTime: 500, // Reset grace period (0.5 seconds)
+      redCandleGraceTime: 800, // Reset grace period (0.8 seconds)
       lastRedCandleContact: 0,
       jumpStartX: 150,
       jumpTargetX: 150,
