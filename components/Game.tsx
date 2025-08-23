@@ -20,6 +20,9 @@ interface GameState {
   canLand: boolean;
   redCandleGraceTime: number; // Grace period when touching red candle (in ms)
   lastRedCandleContact: number; // Timestamp of last red candle contact
+  jumpStartX: number; // Starting X position for jump animation
+  jumpTargetX: number; // Target X position for jump animation
+  jumpProgress: number; // Jump animation progress (0 to 1)
 }
 
 const GRAVITY = 0.8;
@@ -45,6 +48,9 @@ const Game: React.FC = () => {
     canLand: false,
     redCandleGraceTime: 500, // 500ms grace period (0.5 seconds)
     lastRedCandleContact: 0,
+    jumpStartX: 150,
+    jumpTargetX: 150,
+    jumpProgress: 1, // Not jumping initially
   });
 
   const [resetChart, setResetChart] = useState(false);
@@ -92,37 +98,41 @@ const Game: React.FC = () => {
         const nextCandle = candles.find(candle => candle.x > prev.characterPosition.x);
         if (!nextCandle) return prev;
         
-                 // Calculate adaptive jump force based on height difference
+         // Calculate adaptive jump force based on height difference
          let jumpForce = JUMP_FORCE; // Base jump force (-8)
          
          if (currentCandle && nextCandle.topY && currentCandle.topY) {
            // Calculate height difference (negative means next candle is higher)
            const heightDifference = nextCandle.topY - currentCandle.topY;
            
-           // If next candle is higher, increase jump force slightly
-           if (heightDifference < 0) {
-             // Add minimal extra force - just enough to clear the candle
-             const extraForce = Math.abs(heightDifference) * 0.15; // Reduced from 0.3 to 0.15
-             jumpForce = JUMP_FORCE - extraForce; // More negative = stronger jump
-             jumpForce = Math.max(jumpForce, -12); // Reduced cap from -20 to -12
-           }
+           // Calculate required force to reach the target height
+           // Using physics: v² = u² + 2as, where we need v=0 at peak height
+           const requiredHeight = Math.abs(heightDifference) + 50; // Extra clearance
+           const requiredForce = -Math.sqrt(2 * GRAVITY * requiredHeight);
+           
+           // Use the stronger of base jump force or required force
+           jumpForce = Math.min(JUMP_FORCE, requiredForce);
+           jumpForce = Math.max(jumpForce, -25); // Allow higher jumps for tall candles
          }
         
         return {
-        ...prev,
+          ...prev,
           characterVelocity: jumpForce,
-        isJumping: true,
-          characterPosition: { 
-            ...prev.characterPosition, 
-            x: nextCandle.x // Jump directly to next candle position
-          },
+          isJumping: true,
+          jumpStartX: prev.characterPosition.x, // Store starting position
+          jumpTargetX: nextCandle.x, // Store target position
+          jumpProgress: 0, // Start animation
         };
       });
 
-      // Reset jumping state after animation (reduced for smaller jumps)
+      // Reset jumping state after animation
       setTimeout(() => {
-        setGameState(prev => ({ ...prev, isJumping: false }));
-      }, 300);
+        setGameState(prev => ({ 
+          ...prev, 
+          isJumping: false,
+          jumpProgress: 1 // Mark jump as complete
+        }));
+      }, 600); // Match jump duration
     }
   }, [gameState.state, gameState.isDead, gameState.isJumping]);
 
@@ -143,6 +153,21 @@ const Game: React.FC = () => {
         let landedOnCandle = false;
         const GROUND_Y = getGroundY();
         let candleTopY = GROUND_Y;
+        
+        // Handle smooth jump animation
+        let newX = prev.characterPosition.x;
+        let newJumpProgress = prev.jumpProgress;
+        
+        if (prev.isJumping && prev.jumpProgress < 1) {
+          // Animate X position during jump
+          const jumpDuration = 600; // milliseconds
+          const deltaTime = 16; // Assume 60fps
+          newJumpProgress = Math.min(1, prev.jumpProgress + (deltaTime / jumpDuration));
+          
+          // Use easing function for smooth animation
+          const easeProgress = 1 - Math.pow(1 - newJumpProgress, 3); // Ease out cubic
+          newX = prev.jumpStartX + (prev.jumpTargetX - prev.jumpStartX) * easeProgress;
+        }
 
         // Get viewport dimensions (mobile-safe)
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
@@ -150,7 +175,7 @@ const Game: React.FC = () => {
         
         // Update camera to follow character (Mario-style) - mobile responsive
         const screenCenter = viewportWidth / 2;
-        const cameraTargetX = prev.characterPosition.x - screenCenter;
+        const cameraTargetX = newX - screenCenter;
         const newCameraX = Math.max(0, cameraTargetX); // Don't go below 0
 
         // Constrain character to screen bounds - mobile responsive padding
@@ -158,7 +183,7 @@ const Game: React.FC = () => {
         const rightPadding = Math.max(50, viewportWidth * 0.1); // 10% of screen width or minimum 50px
         const screenLeftBound = newCameraX + leftPadding;
         const screenRightBound = newCameraX + viewportWidth - rightPadding;
-        const constrainedCharacterX = Math.max(screenLeftBound, Math.min(screenRightBound, prev.characterPosition.x));
+        const constrainedCharacterX = Math.max(screenLeftBound, Math.min(screenRightBound, newX));
 
         // Get current candles
         const candles = candlesRef.current;
@@ -317,6 +342,7 @@ const Game: React.FC = () => {
           characterVelocity: newVelocity,
           cameraX: newCameraX,
           canLand: newCanLand,
+          jumpProgress: newJumpProgress,
         };
       });
 
@@ -375,6 +401,9 @@ const Game: React.FC = () => {
       canLand: false,
       redCandleGraceTime: 500, // Reset grace period (0.5 seconds)
       lastRedCandleContact: 0,
+      jumpStartX: 150,
+      jumpTargetX: 150,
+      jumpProgress: 1, // Not jumping initially
     }));
     
     // Reset the resetChart flag after a short delay
