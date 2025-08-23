@@ -17,12 +17,25 @@ interface CryptoChartProps {
   cameraX: number;
   onCandleData: (candles: CandleData[]) => void;
   resetChart?: boolean; // Optional prop to reset the chart
+  currentScore?: number; // Current game score for difficulty scaling
 }
 
-const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetChart }) => {
+const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetChart, currentScore = 0 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const candlesRef = useRef<CandleData[]>([]);
+
+  // Calculate red candle probability based on score (progressive difficulty)
+  const getRedCandleProbability = (score: number) => {
+    // Base probability: 30% (increased from natural ~50%)
+    const baseProbability = 0.35;
+    
+    // Increase probability by 2% every 5 points, capped at 65%
+    const scoreMultiplier = Math.floor(score / 5) * 0.02;
+    const finalProbability = Math.min(0.65, baseProbability + scoreMultiplier);
+    
+    return finalProbability;
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -63,19 +76,35 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
             low = Math.min(open, close) * (1 - Math.random() * 0.005);
             isGreen = true;
           } else {
-            priceChange = (Math.random() - 0.5) * volatility + trend;
-            open = basePrice;
-            close = basePrice * (1 + priceChange);
-            high = Math.max(open, close) * (1 + Math.random() * 0.01);
-            low = Math.min(open, close) * (1 - Math.random() * 0.01);
-            isGreen = close > open;
+            // Use score-based probability for red candles
+            const redProbability = getRedCandleProbability(currentScore);
+            const shouldBeRed = Math.random() < redProbability;
             
-            // Prevent consecutive red candles - check last candle
+            if (shouldBeRed) {
+              // Force red candle
+              priceChange = -Math.abs((Math.random() - 0.5) * volatility) - 0.005;
+              open = basePrice;
+              close = basePrice * (1 + priceChange);
+              high = open * (1 + Math.random() * 0.01);
+              low = Math.min(open, close) * (1 - Math.random() * 0.01);
+              isGreen = false;
+            } else {
+              // Force green candle
+              priceChange = Math.abs((Math.random() - 0.5) * volatility) + 0.005;
+              open = basePrice;
+              close = basePrice * (1 + priceChange);
+              high = close * (1 + Math.random() * 0.01);
+              low = Math.min(open, close) * (1 - Math.random() * 0.005);
+              isGreen = true;
+            }
+            
+            // Still prevent consecutive red candles for playability
             const lastCandle = candlesRef.current[candlesRef.current.length - 1];
             if (lastCandle && !lastCandle.isGreen && !isGreen) {
               // Force this candle to be green if the last one was red
               isGreen = true;
-              close = open * (1 + Math.abs(priceChange)); // Ensure close > open
+              priceChange = Math.abs(priceChange);
+              close = open * (1 + priceChange);
               high = close * (1 + Math.random() * 0.01);
             }
           }
@@ -111,19 +140,38 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
         // Add 5 new candles at a time
         for (let i = 0; i < 5; i++) {
           const x = lastCandle.x + candleSpacing * (i + 1);
-          const priceChange = (Math.random() - 0.5) * volatility + trend;
-          const open = basePrice;
-          let close = basePrice * (1 + priceChange);
-          let high = Math.max(open, close) * (1 + Math.random() * 0.01);
-          const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-          let isGreen = close > open;
           
-          // Prevent consecutive red candles - check the last candle in the array
+          // Use score-based probability for red candles
+          const redProbability = getRedCandleProbability(currentScore);
+          const shouldBeRed = Math.random() < redProbability;
+          
+          let priceChange, open, close, high, low, isGreen;
+          
+          if (shouldBeRed) {
+            // Force red candle
+            priceChange = -Math.abs((Math.random() - 0.5) * volatility) - 0.005;
+            open = basePrice;
+            close = basePrice * (1 + priceChange);
+            high = open * (1 + Math.random() * 0.01);
+            low = Math.min(open, close) * (1 - Math.random() * 0.01);
+            isGreen = false;
+          } else {
+            // Force green candle
+            priceChange = Math.abs((Math.random() - 0.5) * volatility) + 0.005;
+            open = basePrice;
+            close = basePrice * (1 + priceChange);
+            high = close * (1 + Math.random() * 0.01);
+            low = Math.min(open, close) * (1 - Math.random() * 0.005);
+            isGreen = true;
+          }
+          
+          // Still prevent consecutive red candles for playability
           const previousCandle = candlesRef.current[candlesRef.current.length - 1];
           if (previousCandle && !previousCandle.isGreen && !isGreen) {
             // Force this candle to be green if the previous one was red
             isGreen = true;
-            close = open * (1 + Math.abs(priceChange)); // Ensure close > open
+            priceChange = Math.abs(priceChange);
+            close = open * (1 + priceChange);
             high = close * (1 + Math.random() * 0.01);
           }
           
@@ -270,7 +318,7 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [cameraX, onCandleData, resetChart]);
+  }, [cameraX, onCandleData, resetChart, currentScore]);
 
   return (
     <canvas

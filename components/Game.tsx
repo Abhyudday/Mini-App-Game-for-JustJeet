@@ -159,7 +159,9 @@ const Game: React.FC = () => {
             startX: prev.characterPosition.x,
             targetX: nextCandle.x,
             distance: nextCandle.x - prev.characterPosition.x,
-            jumpForce: finalJumpForce
+            jumpForce: finalJumpForce,
+            wasOnRedCandle: prev.lastRedCandleContact > 0,
+            resettingRedTimer: true
           });
         }
         
@@ -174,6 +176,7 @@ const Game: React.FC = () => {
           jumpStartX: prev.characterPosition.x, // Store starting position for reference
           jumpTargetX: nextCandle.x, // Store target position for reference
           jumpProgress: 0, // Start animation
+          lastRedCandleContact: 0, // Reset red candle timer when jumping
         };
       });
 
@@ -195,8 +198,8 @@ const Game: React.FC = () => {
       setGameState(prev => {
         if (prev.state !== 'playing' || prev.isDead) return prev;
 
-        // FIRST PRIORITY: Check red candle grace period expiration
-        if (prev.lastRedCandleContact > 0 && !prev.isDead) {
+        // FIRST PRIORITY: Check red candle grace period expiration (but not while jumping)
+        if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
           const currentTime = Date.now();
           const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
           
@@ -642,6 +645,7 @@ const Game: React.FC = () => {
         cameraX={gameState.cameraX}
         onCandleData={handleCandleData}
         resetChart={resetChart}
+        currentScore={gameState.score}
       />
 
       {/* Character */}
