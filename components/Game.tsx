@@ -195,6 +195,24 @@ const Game: React.FC = () => {
       setGameState(prev => {
         if (prev.state !== 'playing' || prev.isDead) return prev;
 
+        // FIRST PRIORITY: Check red candle grace period expiration
+        if (prev.lastRedCandleContact > 0 && !prev.isDead) {
+          const currentTime = Date.now();
+          const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
+          
+          if (timeSinceRedContact >= prev.redCandleGraceTime) {
+            console.log('IMMEDIATE GAME OVER: Red candle timer expired!', {
+              timeSinceContact: timeSinceRedContact,
+              graceTime: prev.redCandleGraceTime
+            });
+            return {
+              ...prev,
+              isDead: true,
+              characterVelocity: 0,
+            };
+          }
+        }
+
         // Apply gravity with slight adjustment for better landing control
         let gravityForce = GRAVITY;
         
@@ -323,6 +341,11 @@ const Game: React.FC = () => {
                   if (prev.lastRedCandleContact === 0) {
                     // First contact with red candle - start grace period
                     const newCandleIndex = candles.indexOf(characterCandle);
+                    console.log('RED CANDLE CONTACT: Starting grace period', {
+                      currentTime,
+                      graceTime: prev.redCandleGraceTime,
+                      candleIndex: newCandleIndex
+                    });
                     return {
                       ...prev,
                       characterPosition: { x: constrainedCharacterX, y: newY },
@@ -410,16 +433,29 @@ const Game: React.FC = () => {
           newVelocity = 0;
         }
 
-        // Check if grace period has expired while on red candle
-        if (prev.lastRedCandleContact > 0 && !prev.isDead) {
+        // Check if grace period has expired while on red candle - CRITICAL CHECK
+        if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
           const currentTime = Date.now();
           const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
+          
+          // Debug logging for red candle timer
+          if (process.env.NODE_ENV === 'development' && timeSinceRedContact > 0) {
+            console.log('Red candle timer:', {
+              timeSinceContact: timeSinceRedContact,
+              graceTime: prev.redCandleGraceTime,
+              remaining: prev.redCandleGraceTime - timeSinceRedContact,
+              shouldDie: timeSinceRedContact >= prev.redCandleGraceTime
+            });
+          }
+          
           if (timeSinceRedContact >= prev.redCandleGraceTime) {
-            // Grace period expired - game over
+            // Grace period expired - game over immediately
+            console.log('GAME OVER: Red candle grace period expired!');
             return {
               ...prev,
               isDead: true,
               characterVelocity: 0,
+              state: 'playing', // Keep in playing state so game over logic can handle it
             };
           }
         }
