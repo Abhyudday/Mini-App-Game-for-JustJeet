@@ -140,6 +140,11 @@ const Game: React.FC = () => {
         const cameraTargetX = prev.characterPosition.x - screenCenter;
         const newCameraX = Math.max(0, cameraTargetX); // Don't go below 0
 
+        // Constrain character to screen bounds
+        const screenLeftBound = newCameraX + 50; // Leave some padding from left edge
+        const screenRightBound = newCameraX + window.innerWidth - 100; // Leave padding from right edge
+        const constrainedCharacterX = Math.max(screenLeftBound, Math.min(screenRightBound, prev.characterPosition.x));
+
         // Get current candles
         const candles = candlesRef.current;
         
@@ -228,7 +233,7 @@ const Game: React.FC = () => {
 
         return {
           ...prev,
-          characterPosition: { ...prev.characterPosition, y: newY },
+          characterPosition: { x: constrainedCharacterX, y: newY },
           characterVelocity: newVelocity,
           cameraX: newCameraX,
           canLand: newCanLand,
@@ -309,8 +314,11 @@ const Game: React.FC = () => {
   // Touch and click handlers
   useEffect(() => {
     const handleInteraction = (e: Event) => {
-      e.preventDefault();
-      jump();
+      if (gameState.state === 'playing') {
+        e.preventDefault();
+        e.stopPropagation();
+        jump();
+      }
     };
 
     const handleKeyPress = (e: KeyboardEvent) => {

@@ -161,7 +161,15 @@ const GameUI: React.FC<GameUIProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onStartGame}
-              className="w-full max-w-md bg-green-500 hover:bg-green-400 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-4"
+              onTouchStart={(e) => {
+                e.preventDefault();
+                onStartGame();
+              }}
+              className="w-full max-w-md bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-4 cursor-pointer select-none"
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation'
+              }}
             >
               PLAY GAME
             </motion.button>
@@ -174,7 +182,15 @@ const GameUI: React.FC<GameUIProps> = ({
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={onShowLeaderboard}
-              className="text-green-400 hover:text-green-300 font-semibold transition-colors duration-200"
+              onTouchStart={(e) => {
+                e.preventDefault();
+                onShowLeaderboard();
+              }}
+              className="text-green-400 hover:text-green-300 active:text-green-500 font-semibold transition-colors duration-200 cursor-pointer select-none"
+              style={{ 
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation'
+              }}
             >
               🏆 View Leaderboard
             </motion.button>
@@ -241,7 +257,15 @@ const GameUI: React.FC<GameUIProps> = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={onRestartGame}
-                  className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg"
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    onRestartGame();
+                  }}
+                  className="w-full bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg cursor-pointer select-none"
+                  style={{ 
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
+                  }}
                 >
                   PLAY AGAIN
                 </motion.button>
@@ -253,7 +277,15 @@ const GameUI: React.FC<GameUIProps> = ({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onShowLeaderboard}
-                  className="text-green-400 hover:text-green-300 font-semibold transition-colors duration-200"
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    onShowLeaderboard();
+                  }}
+                  className="text-green-400 hover:text-green-300 active:text-green-500 font-semibold transition-colors duration-200 cursor-pointer select-none"
+                  style={{ 
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
+                  }}
                 >
                   🏆 View Leaderboard
                 </motion.button>
