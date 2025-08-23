@@ -69,21 +69,7 @@ const Game: React.FC = () => {
   // Handle candle data from chart
   const handleCandleData = useCallback((candles: any[]) => {
     candlesRef.current = candles;
-    
-    // Fix initial character position when candles are first loaded
-    if (candles.length > 0 && gameState.state === 'playing' && gameState.currentCandleIndex === 0) {
-      const firstCandle = candles[0];
-      if (firstCandle && firstCandle.topY !== undefined) {
-        setGameState(prev => ({
-          ...prev,
-          characterPosition: { 
-            x: firstCandle.x, 
-            y: firstCandle.topY // Place character exactly on first candle
-          }
-        }));
-      }
-    }
-  }, [gameState.state, gameState.currentCandleIndex]);
+  }, []);
 
   // Jump function
   const jump = useCallback(() => {
@@ -393,6 +379,22 @@ const Game: React.FC = () => {
     
     // Reset the resetChart flag after a short delay
     setTimeout(() => setResetChart(false), 100);
+    
+    // Fix initial character position after candles are loaded
+    setTimeout(() => {
+      if (candlesRef.current.length > 0) {
+        const firstCandle = candlesRef.current[0];
+        if (firstCandle && firstCandle.topY !== undefined) {
+          setGameState(prev => ({
+            ...prev,
+            characterPosition: { 
+              x: firstCandle.x, 
+              y: firstCandle.topY // Place character exactly on first candle
+            }
+          }));
+        }
+      }
+    }, 200); // Wait for chart to initialize
   }, []);
 
   const restartGame = useCallback(() => {
