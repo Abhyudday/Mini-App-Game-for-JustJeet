@@ -63,26 +63,20 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
             low = Math.min(open, close) * (1 - Math.random() * 0.005);
             isGreen = true;
           } else {
-            // Check if the previous candle was red to prevent consecutive red candles
-            const previousCandle = candlesRef.current[i - 1];
-            const previousWasRed = previousCandle && !previousCandle.isGreen;
+            priceChange = (Math.random() - 0.5) * volatility + trend;
+            open = basePrice;
+            close = basePrice * (1 + priceChange);
+            high = Math.max(open, close) * (1 + Math.random() * 0.01);
+            low = Math.min(open, close) * (1 - Math.random() * 0.01);
+            isGreen = close > open;
             
-            if (previousWasRed) {
-              // Force this candle to be green if the previous one was red
-              priceChange = Math.abs((Math.random() - 0.5) * volatility) + 0.005;
-              open = basePrice;
-              close = basePrice * (1 + priceChange);
-              high = close * (1 + Math.random() * 0.01);
-              low = Math.min(open, close) * (1 - Math.random() * 0.005);
+            // Prevent consecutive red candles - check last candle
+            const lastCandle = candlesRef.current[candlesRef.current.length - 1];
+            if (lastCandle && !lastCandle.isGreen && !isGreen) {
+              // Force this candle to be green if the last one was red
               isGreen = true;
-            } else {
-              // Normal candle generation
-              priceChange = (Math.random() - 0.5) * volatility + trend;
-              open = basePrice;
-              close = basePrice * (1 + priceChange);
-              high = Math.max(open, close) * (1 + Math.random() * 0.01);
-              low = Math.min(open, close) * (1 - Math.random() * 0.01);
-              isGreen = close > open;
+              close = open * (1 + Math.abs(priceChange)); // Ensure close > open
+              high = close * (1 + Math.random() * 0.01);
             }
           }
           
@@ -117,27 +111,20 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
         // Add 5 new candles at a time
         for (let i = 0; i < 5; i++) {
           const x = lastCandle.x + candleSpacing * (i + 1);
-          let priceChange, open, close, high, low, isGreen;
+          const priceChange = (Math.random() - 0.5) * volatility + trend;
+          const open = basePrice;
+          let close = basePrice * (1 + priceChange);
+          let high = Math.max(open, close) * (1 + Math.random() * 0.01);
+          const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+          let isGreen = close > open;
           
-          // Check if the last candle was red to prevent consecutive red candles
-          const lastCandleWasRed = candlesRef.current.length > 0 && !candlesRef.current[candlesRef.current.length - 1].isGreen;
-          
-          if (lastCandleWasRed) {
-            // Force this candle to be green if the last one was red
-            priceChange = Math.abs((Math.random() - 0.5) * volatility) + 0.005; // Ensure positive change
-            open = basePrice;
-            close = basePrice * (1 + priceChange);
-            high = close * (1 + Math.random() * 0.01);
-            low = Math.min(open, close) * (1 - Math.random() * 0.005);
+          // Prevent consecutive red candles - check the last candle in the array
+          const previousCandle = candlesRef.current[candlesRef.current.length - 1];
+          if (previousCandle && !previousCandle.isGreen && !isGreen) {
+            // Force this candle to be green if the previous one was red
             isGreen = true;
-          } else {
-            // Normal candle generation
-            priceChange = (Math.random() - 0.5) * volatility + trend;
-            open = basePrice;
-            close = basePrice * (1 + priceChange);
-            high = Math.max(open, close) * (1 + Math.random() * 0.01);
-            low = Math.min(open, close) * (1 - Math.random() * 0.01);
-            isGreen = close > open;
+            close = open * (1 + Math.abs(priceChange)); // Ensure close > open
+            high = close * (1 + Math.random() * 0.01);
           }
           
           candlesRef.current.push({
@@ -265,14 +252,6 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
         ctx.roundRect(x, bodyY, candleWidth, Math.max(bodyHeight, 3), radius);
         ctx.fill();
         ctx.shadowBlur = 0;
-
-        // Add visual indicators for landing areas
-        if (x >= 50 && x <= 150) { // Wider character landing area for broader candles
-          // Draw landing zone indicator
-          ctx.strokeStyle = candle.isGreen ? '#00ff88' : '#ff4444';
-          ctx.lineWidth = 4;
-          ctx.strokeRect(x - 8, bodyY - 8, candleWidth + 16, Math.max(bodyHeight, 3) + 16);
-        }
       });
 
       // Update parent with latest candle data including topY values
