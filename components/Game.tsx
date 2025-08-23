@@ -75,13 +75,34 @@ const Game: React.FC = () => {
         const candles = candlesRef.current;
         if (candles.length === 0) return prev;
         
+        // Find current candle (where character is standing)
+        const currentCandle = candles.find(candle => 
+          Math.abs(candle.x - prev.characterPosition.x) < 35
+        );
+        
         // Find next candle after current position
         const nextCandle = candles.find(candle => candle.x > prev.characterPosition.x);
         if (!nextCandle) return prev;
         
+        // Calculate adaptive jump force based on height difference
+        let jumpForce = JUMP_FORCE; // Base jump force (-12)
+        
+        if (currentCandle && nextCandle.topY && currentCandle.topY) {
+          // Calculate height difference (negative means next candle is higher)
+          const heightDifference = nextCandle.topY - currentCandle.topY;
+          
+          // If next candle is higher, increase jump force
+          if (heightDifference < 0) {
+            // Add extra force proportional to height difference
+            const extraForce = Math.abs(heightDifference) * 0.3; // Adjust multiplier as needed
+            jumpForce = JUMP_FORCE - extraForce; // More negative = stronger jump
+            jumpForce = Math.max(jumpForce, -20); // Cap maximum jump force
+          }
+        }
+        
         return {
           ...prev,
-          characterVelocity: JUMP_FORCE,
+          characterVelocity: jumpForce,
           isJumping: true,
           characterPosition: { 
             ...prev.characterPosition, 
@@ -148,10 +169,8 @@ const Game: React.FC = () => {
           );
           
           if (characterCandle) {
-            // Calculate precise candle body top position
-            // Use a more consistent height calculation based on the visual candles
-            const candleBodyHeight = 50; // Adjusted height for better alignment
-            const candleBodyTopY = GROUND_Y - candleBodyHeight;
+            // Use the actual visual candle top position if available, otherwise fallback
+            const candleBodyTopY = characterCandle.topY || (GROUND_Y - 50);
             candleTopY = candleBodyTopY;
             
             // More precise collision detection - check if character is on or very close to candle
