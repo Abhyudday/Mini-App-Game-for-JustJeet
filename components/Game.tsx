@@ -30,7 +30,7 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: 150, y: GROUND_Y - 40 }, // Start on first candle body top
+    characterPosition: { x: 150, y: GROUND_Y - 50 }, // Start on first candle body top
     characterVelocity: 0,
     isJumping: false,
     isDead: false,
@@ -122,12 +122,21 @@ const Game: React.FC = () => {
         // Get current candles
         const candles = candlesRef.current;
         
-        // Reduce gravity slightly when approaching a candle for smoother landing
+        // Reduce gravity when approaching a candle for controlled landing
         const nearCandle = candles.find(candle => 
           Math.abs(candle.x - prev.characterPosition.x) < 35
         );
-        if (nearCandle && prev.characterVelocity > 0 && prev.characterPosition.y > GROUND_Y - 60) {
-          gravityForce = GRAVITY * 0.7; // Reduce gravity for smoother landing
+        if (nearCandle && prev.characterVelocity > 0 && prev.characterPosition.y > GROUND_Y - 70) {
+          const candleTopY = GROUND_Y - 50;
+          const distanceToCandle = Math.abs(prev.characterPosition.y - candleTopY);
+          
+          // Gradually reduce gravity as we get closer to the candle
+          if (distanceToCandle < 20) {
+            gravityForce = GRAVITY * 0.5; // Strong reduction when very close
+          } else if (distanceToCandle < 40) {
+            gravityForce = GRAVITY * 0.7; // Moderate reduction when approaching
+          }
+          
           // Recalculate velocity with adjusted gravity
           newVelocity = prev.characterVelocity + gravityForce;
           newY = prev.characterPosition.y + newVelocity;
@@ -139,16 +148,20 @@ const Game: React.FC = () => {
           );
           
           if (characterCandle) {
-            // Calculate candle body top position (not the wick)
-            // The candle body is the thick rectangular part, wicks are thin lines
-            const candleBodyHeight = 40; // Height of the thick candle body above ground
+            // Calculate precise candle body top position
+            // Use a more consistent height calculation based on the visual candles
+            const candleBodyHeight = 50; // Adjusted height for better alignment
             const candleBodyTopY = GROUND_Y - candleBodyHeight;
             candleTopY = candleBodyTopY;
             
-            // If character is falling and approaching candle body top
-            if (prev.characterVelocity >= 0 && newY >= candleBodyTopY - 3) {
+            // More precise collision detection - check if character is on or very close to candle
+            const characterBottom = newY;
+            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < 5;
+            const isFallingOntoCandle = prev.characterVelocity >= 0 && characterBottom >= candleBodyTopY - 5 && characterBottom <= candleBodyTopY + 10;
+            
+            if (isOnCandle || isFallingOntoCandle) {
               if (characterCandle.isGreen) {
-                // Land and stay on green candle body (thick part)
+                // Snap to exact candle top position
                 newY = candleBodyTopY;
                 newVelocity = 0;
                 landedOnCandle = true;
@@ -166,10 +179,10 @@ const Game: React.FC = () => {
                     canLand: false,
                   };
                 } else {
-                  // Already on this candle, just stay on it
+                  // Already on this candle, maintain exact position
                   return {
                     ...prev,
-                    characterPosition: { ...prev.characterPosition, y: newY },
+                    characterPosition: { ...prev.characterPosition, y: candleBodyTopY },
                     characterVelocity: 0,
                     cameraX: newCameraX,
                     canLand: false,
@@ -249,7 +262,7 @@ const Game: React.FC = () => {
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: 150, y: GROUND_Y - 40 }, // Start on first candle body top
+      characterPosition: { x: 150, y: GROUND_Y - 50 }, // Start on first candle body top
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
