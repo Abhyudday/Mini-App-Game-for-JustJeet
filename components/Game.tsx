@@ -101,23 +101,48 @@ const Game: React.FC = () => {
          // Calculate adaptive jump force based on height difference
          let jumpForce = JUMP_FORCE; // Base jump force (-8)
          
-         if (currentCandle && nextCandle.topY && currentCandle.topY) {
+         if (currentCandle && nextCandle.topY !== undefined && currentCandle.topY !== undefined) {
            // Calculate height difference (negative means next candle is higher)
            const heightDifference = nextCandle.topY - currentCandle.topY;
            
-           // Calculate required force to reach the target height
-           // Using physics: v² = u² + 2as, where we need v=0 at peak height
-           const requiredHeight = Math.abs(heightDifference) + 50; // Extra clearance
-           const requiredForce = -Math.sqrt(2 * GRAVITY * requiredHeight);
+           if (heightDifference < 0) {
+             // Next candle is higher - calculate required force
+             const requiredHeight = Math.abs(heightDifference) + 30; // Extra clearance
+             
+             // Safety check to prevent invalid calculations
+             if (requiredHeight > 0 && GRAVITY > 0) {
+               const calculatedForce = -Math.sqrt(2 * GRAVITY * requiredHeight);
+               
+               // Validate the calculated force
+               if (!isNaN(calculatedForce) && isFinite(calculatedForce)) {
+                 jumpForce = Math.max(calculatedForce, -30); // Cap at -30 for very tall candles
+               }
+             }
+           }
            
-           // Use the stronger of base jump force or required force
-           jumpForce = Math.min(JUMP_FORCE, requiredForce);
-           jumpForce = Math.max(jumpForce, -25); // Allow higher jumps for tall candles
+           // Ensure jump force is always valid
+           if (isNaN(jumpForce) || !isFinite(jumpForce)) {
+             console.warn('Invalid jump force calculated, using default:', jumpForce);
+             jumpForce = JUMP_FORCE;
+           }
+           
+           // Debug logging for development
+           if (process.env.NODE_ENV === 'development') {
+             console.log('Jump calculation:', {
+               heightDifference,
+               jumpForce,
+               currentCandleY: currentCandle.topY,
+               nextCandleY: nextCandle.topY
+             });
+           }
          }
+        
+        // Final safety check - ensure we have a valid jump force
+        const finalJumpForce = (jumpForce && isFinite(jumpForce) && jumpForce < 0) ? jumpForce : JUMP_FORCE;
         
         return {
           ...prev,
-          characterVelocity: jumpForce,
+          characterVelocity: finalJumpForce,
           isJumping: true,
           jumpStartX: prev.characterPosition.x, // Store starting position
           jumpTargetX: nextCandle.x, // Store target position
