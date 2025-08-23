@@ -152,24 +152,29 @@ const Game: React.FC = () => {
         // Get current candles
         const candles = candlesRef.current;
         
-        // Apply consistent gravity
-        newVelocity = prev.characterVelocity + gravityForce;
-        newY = prev.characterPosition.y + newVelocity;
+        // Apply consistent gravity - no special reductions
+        // Precise candle collision detection
         if (candles.length > 0) {
-          // Find the closest candle horizontally
-          const characterCandle = candles.find(candle => 
-            Math.abs(candle.x - constrainedCharacterX) < 30 // Tighter collision detection
-          );
+          // Find candle that character is directly above (horizontally aligned)
+          const characterCandle = candles.find(candle => {
+            const candleLeft = candle.x - 12; // Half candle width (25/2 ≈ 12)
+            const candleRight = candle.x + 12;
+            return constrainedCharacterX >= candleLeft && constrainedCharacterX <= candleRight;
+          });
           
           if (characterCandle && characterCandle.topY !== undefined) {
-            const candleBodyTopY = characterCandle.topY;
-            candleTopY = candleBodyTopY;
+            const candleTopY = characterCandle.topY;
             
-            // Simple collision detection - if character is at or below candle top
-            if (newY >= candleBodyTopY - 5) {
+            // Check if character is landing on or standing on this candle
+            const characterBottom = newY;
+            const isLandingOnCandle = prev.characterVelocity >= 0 && // Falling down
+                                    characterBottom >= candleTopY - 5 && // Close to candle top
+                                    characterBottom <= candleTopY + 5; // Not too far below
+            
+            if (isLandingOnCandle) {
               if (characterCandle.isGreen) {
-                // Land on green candle
-                newY = candleBodyTopY;
+                // Successfully landed on green candle
+                newY = candleTopY;
                 newVelocity = 0;
                 landedOnCandle = true;
                 
@@ -186,77 +191,47 @@ const Game: React.FC = () => {
                     lastRedCandleContact: 0, // Reset red candle contact
                   };
                 } else {
-                  // Stay on current green candle
+                  // Already on this green candle, maintain position
                   return {
                     ...prev,
-                    characterPosition: { x: constrainedCharacterX, y: newY },
+                    characterPosition: { x: constrainedCharacterX, y: candleTopY },
                     characterVelocity: 0,
                     cameraX: newCameraX,
                     lastRedCandleContact: 0,
                   };
                 }
               } else {
-                // Red candle - start grace period or end game
-                const currentTime = Date.now();
-                const isInGracePeriod = prev.lastRedCandleContact > 0 && 
-                                      (currentTime - prev.lastRedCandleContact) < prev.redCandleGraceTime;
-                
-                if (!isInGracePeriod) {
-                  // Start grace period
-                  return {
-                    ...prev,
-                    characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
-                    characterVelocity: 0,
-                    cameraX: newCameraX,
-                    lastRedCandleContact: currentTime,
-                  };
-                } else {
-                  // Continue grace period
-                  return {
-                    ...prev,
-                    characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
-                    characterVelocity: 0,
-                    cameraX: newCameraX,
-                  };
-                }
+                // Landed on red candle - immediate game over (no grace period for simplicity)
+                return {
+                  ...prev,
+                  isDead: true,
+                  characterVelocity: 0,
+                  cameraX: newCameraX,
+                };
               }
             }
           }
         }
 
-        // Ground collision - game over if character hits ground
+        // Ground collision - game over if character falls to ground (missed all candles)
         if (!landedOnCandle && newY >= GROUND_Y) {
           return {
             ...prev,
             isDead: true,
             characterPosition: { x: constrainedCharacterX, y: GROUND_Y },
             characterVelocity: 0,
+            cameraX: newCameraX,
           };
         }
 
-        // Check if grace period has expired while on red candle
-        const currentTime = Date.now();
-        if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
-          const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
-          if (timeSinceRedContact >= prev.redCandleGraceTime) {
-            // Grace period expired - game over
-            return {
-              ...prev,
-              isDead: true,
-              characterVelocity: 0,
-            };
-          }
-        }
-
-        // If no collision detected and character is falling, continue falling
-        // The ground collision above will handle game over
+                // If character is still falling and hasn't landed on anything, continue falling
 
         return {
           ...prev,
           characterPosition: { x: constrainedCharacterX, y: newY },
           characterVelocity: newVelocity,
           cameraX: newCameraX,
-          canLand: false,
+          canLand: newCanLand,
         };
       });
 
