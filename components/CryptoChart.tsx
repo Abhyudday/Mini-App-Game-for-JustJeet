@@ -220,14 +220,6 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
         candle.topY = bodyY;
         candle.bottomY = bodyY + bodyHeight;
 
-        // Draw wick
-        ctx.strokeStyle = candle.isGreen ? '#00d4aa' : '#ff4757';
-        ctx.lineWidth = 3; // Slightly thicker wick for broader candles
-        ctx.beginPath();
-        ctx.moveTo(x + candleWidth / 2, highY);
-        ctx.lineTo(x + candleWidth / 2, lowY);
-        ctx.stroke();
-
         if (candle.isGreen) {
           // Green candle gradient
           const greenGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
