@@ -30,7 +30,7 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: 150, y: GROUND_Y - 50 }, // Start on first candle body top
+    characterPosition: { x: 150, y: GROUND_Y - 60 }, // Start on first candle body top
     characterVelocity: 0,
     isJumping: false,
     isDead: false,
@@ -84,21 +84,9 @@ const Game: React.FC = () => {
         const nextCandle = candles.find(candle => candle.x > prev.characterPosition.x);
         if (!nextCandle) return prev;
         
-        // Calculate adaptive jump force based on height difference
+        // Use consistent jump force for now since we're using uniform candle heights
+        // This ensures predictable jumping behavior
         let jumpForce = JUMP_FORCE; // Base jump force (-12)
-        
-        if (currentCandle && nextCandle.topY && currentCandle.topY) {
-          // Calculate height difference (negative means next candle is higher)
-          const heightDifference = nextCandle.topY - currentCandle.topY;
-          
-          // If next candle is higher, increase jump force
-          if (heightDifference < 0) {
-            // Add extra force proportional to height difference
-            const extraForce = Math.abs(heightDifference) * 0.3; // Adjust multiplier as needed
-            jumpForce = JUMP_FORCE - extraForce; // More negative = stronger jump
-            jumpForce = Math.max(jumpForce, -20); // Cap maximum jump force
-          }
-        }
         
         return {
           ...prev,
@@ -152,8 +140,8 @@ const Game: React.FC = () => {
         const nearCandle = candles.find(candle => 
           Math.abs(candle.x - prev.characterPosition.x) < 35
         );
-        if (nearCandle && prev.characterVelocity > 0 && prev.characterPosition.y > GROUND_Y - 70) {
-          const candleTopY = GROUND_Y - 50;
+        if (nearCandle && prev.characterVelocity > 0 && prev.characterPosition.y > GROUND_Y - 80) {
+          const candleTopY = GROUND_Y - 60;
           const distanceToCandle = Math.abs(prev.characterPosition.y - candleTopY);
           
           // Gradually reduce gravity as we get closer to the candle
@@ -174,14 +162,15 @@ const Game: React.FC = () => {
           );
           
           if (characterCandle) {
-            // Use the actual visual candle top position if available, otherwise fallback
-            const candleBodyTopY = characterCandle.topY || (GROUND_Y - 50);
+            // For now, use a consistent ground-based calculation until chart topY is reliable
+            // The character should land on a platform that's 60px above ground for visual consistency
+            const candleBodyTopY = GROUND_Y - 60;
             candleTopY = candleBodyTopY;
             
             // More precise collision detection - check if character is on or very close to candle
             const characterBottom = newY;
-            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < 5;
-            const isFallingOntoCandle = prev.characterVelocity >= 0 && characterBottom >= candleBodyTopY - 5 && characterBottom <= candleBodyTopY + 10;
+            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < 8;
+            const isFallingOntoCandle = prev.characterVelocity >= 0 && characterBottom >= candleBodyTopY - 8 && characterBottom <= candleBodyTopY + 15;
             
             if (isOnCandle || isFallingOntoCandle) {
               if (characterCandle.isGreen) {
@@ -286,7 +275,7 @@ const Game: React.FC = () => {
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: 150, y: GROUND_Y - 50 }, // Start on first candle body top
+      characterPosition: { x: 150, y: GROUND_Y - 60 }, // Start on first candle body top
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
