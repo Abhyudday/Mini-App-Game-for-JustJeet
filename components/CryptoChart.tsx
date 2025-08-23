@@ -25,14 +25,14 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
   const animationRef = useRef<number>();
   const candlesRef = useRef<CandleData[]>([]);
 
-  // Calculate red candle probability based on score (progressive difficulty)
+  // Calculate red candle probability based on score (progressive difficulty) - HARDER
   const getRedCandleProbability = (score: number) => {
-    // Base probability: 30% (increased from natural ~50%)
-    const baseProbability = 0.35;
+    // Base probability: 40% (increased for more difficulty)
+    const baseProbability = 0.40;
     
-    // Increase probability by 2% every 5 points, capped at 65%
-    const scoreMultiplier = Math.floor(score / 5) * 0.02;
-    const finalProbability = Math.min(0.65, baseProbability + scoreMultiplier);
+    // Increase probability by 3% every 3 points, capped at 70%
+    const scoreMultiplier = Math.floor(score / 3) * 0.03;
+    const finalProbability = Math.min(0.70, baseProbability + scoreMultiplier);
     
     return finalProbability;
   };
@@ -67,8 +67,8 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
           
           let priceChange, open, close, high, low, isGreen;
           
-          // First 3 candles are always green for easier start
-          if (i < 3) {
+          // First 2 candles are always green for easier start - HARDER
+          if (i < 2) {
             priceChange = Math.abs((Math.random() - 0.5) * volatility) + 0.005;
             open = basePrice;
             close = basePrice * (1 + priceChange);

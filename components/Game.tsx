@@ -46,7 +46,7 @@ const Game: React.FC = () => {
     currentCandleIndex: 0,
     cameraX: 0, // Camera starts at 0
     canLand: false,
-    redCandleGraceTime: 800, // 800ms grace period (0.8 seconds)
+    redCandleGraceTime: 600, // 600ms grace period (0.6 seconds) - HARDER
     lastRedCandleContact: 0,
     jumpStartX: 150,
     jumpTargetX: 150,
@@ -80,7 +80,7 @@ const Game: React.FC = () => {
   // Jump function
   const jump = useCallback(() => {
     const now = Date.now();
-    if (now - lastTouchRef.current < 250) return; // Reduced delay for more responsive jumping
+          if (now - lastTouchRef.current < 300) return; // Slightly slower tapping for more precision - HARDER
     lastTouchRef.current = now;
 
     if (gameState.state === 'playing' && !gameState.isDead && !gameState.isJumping) {
@@ -186,7 +186,7 @@ const Game: React.FC = () => {
           ...prev, 
           isJumping: false
         }));
-      }, 400); // Shorter duration for simpler jump
+             }, 350); // Faster jump timing - HARDER
     }
   }, [gameState.state, gameState.isDead, gameState.isJumping]);
 
@@ -268,8 +268,8 @@ const Game: React.FC = () => {
           newY = prev.characterPosition.y + newVelocity;
         }
         if (candles.length > 0) {
-          // Check for candle collision (character standing on candle) - mobile responsive tolerance
-          const collisionTolerance = Math.max(35, Math.min(50, viewportWidth * 0.06)); // Scale with screen width
+          // Check for candle collision (character standing on candle) - mobile responsive tolerance - HARDER
+          const collisionTolerance = Math.max(30, Math.min(45, viewportWidth * 0.05)); // Smaller tolerance for more precision
           const characterCandle = candles.find(candle => 
             Math.abs(candle.x - constrainedCharacterX) < collisionTolerance
           );
@@ -288,9 +288,9 @@ const Game: React.FC = () => {
             const candleBodyTopY = characterCandle.topY !== undefined ? characterCandle.topY : (GROUND_Y - 50);
             candleTopY = candleBodyTopY;
             
-            // Mobile-responsive collision detection for better landing
+            // Mobile-responsive collision detection for better landing - HARDER
             const characterBottom = newY;
-            const landingTolerance = Math.max(15, Math.min(25, viewportHeight * 0.03)); // Increased tolerance
+            const landingTolerance = Math.max(12, Math.min(20, viewportHeight * 0.025)); // Smaller tolerance for more precision
             
             // Character should land on candle if falling and within horizontal range
             const isAboveCandle = characterBottom <= candleBodyTopY + landingTolerance;
@@ -552,7 +552,7 @@ const Game: React.FC = () => {
       currentCandleIndex: 0, // Start at first candle
       cameraX: 0,
       canLand: false,
-      redCandleGraceTime: 800, // Reset grace period (0.8 seconds)
+      redCandleGraceTime: 600, // Reset grace period (0.6 seconds) - HARDER
       lastRedCandleContact: 0,
       jumpStartX: 150,
       jumpTargetX: 150,
@@ -693,7 +693,7 @@ const Game: React.FC = () => {
           <div>Candles: {candlesRef.current.length}</div>
           <div className={gameState.lastRedCandleContact > 0 ? 'text-red-400' : ''}>
             Grace: {gameState.lastRedCandleContact > 0 ? 
-              Math.max(0, gameState.redCandleGraceTime - (Date.now() - gameState.lastRedCandleContact)).toFixed(0) + 'ms (0.5s total)' : 
+              Math.max(0, gameState.redCandleGraceTime - (Date.now() - gameState.lastRedCandleContact)).toFixed(0) + 'ms (0.6s total)' : 
               'Safe'}
           </div>
         </div>
