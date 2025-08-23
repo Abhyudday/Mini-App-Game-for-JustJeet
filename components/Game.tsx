@@ -24,7 +24,11 @@ interface GameState {
 
 const GRAVITY = 0.8;
 const JUMP_FORCE = -8; // Reduced jump force for smaller, more controlled jumps
-const GROUND_Y = 400;
+const getGroundY = () => {
+  if (typeof window === 'undefined') return 400;
+  // Make ground position responsive - use 70% of screen height for mobile compatibility
+  return Math.max(300, window.innerHeight * 0.7);
+};
 const CHARACTER_X = 100;
 
 const Game: React.FC = () => {
@@ -32,7 +36,7 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: 150, y: GROUND_Y - 50 }, // Start on first candle body top
+    characterPosition: { x: 150, y: getGroundY() - 50 }, // Start on first candle body top
     characterVelocity: 0,
     isJumping: false,
     isDead: false,
@@ -137,44 +141,72 @@ const Game: React.FC = () => {
         let newY = prev.characterPosition.y + newVelocity;
         let newCanLand = false;
         let landedOnCandle = false;
+        const GROUND_Y = getGroundY();
         let candleTopY = GROUND_Y;
 
-        // Update camera to follow character (Mario-style)
-        const screenCenter = window.innerWidth / 2;
+        // Get viewport dimensions (mobile-safe)
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
+        
+        // Update camera to follow character (Mario-style) - mobile responsive
+        const screenCenter = viewportWidth / 2;
         const cameraTargetX = prev.characterPosition.x - screenCenter;
         const newCameraX = Math.max(0, cameraTargetX); // Don't go below 0
 
-        // Constrain character to screen bounds
-        const screenLeftBound = newCameraX + 50; // Leave some padding from left edge
-        const screenRightBound = newCameraX + window.innerWidth - 100; // Leave padding from right edge
+        // Constrain character to screen bounds - mobile responsive padding
+        const leftPadding = Math.max(30, viewportWidth * 0.05); // 5% of screen width or minimum 30px
+        const rightPadding = Math.max(50, viewportWidth * 0.1); // 10% of screen width or minimum 50px
+        const screenLeftBound = newCameraX + leftPadding;
+        const screenRightBound = newCameraX + viewportWidth - rightPadding;
         const constrainedCharacterX = Math.max(screenLeftBound, Math.min(screenRightBound, prev.characterPosition.x));
 
         // Get current candles
         const candles = candlesRef.current;
         
-        // Apply consistent gravity - no special reductions
-        // Precise candle collision detection
-        if (candles.length > 0) {
-          // Find candle that character is directly above (horizontally aligned)
-          const characterCandle = candles.find(candle => {
-            const candleLeft = candle.x - 12; // Half candle width (25/2 ≈ 12)
-            const candleRight = candle.x + 12;
-            return constrainedCharacterX >= candleLeft && constrainedCharacterX <= candleRight;
-          });
+        // Reduce gravity when approaching a candle for controlled landing
+        const nearCandle = candles.find(candle => 
+          Math.abs(candle.x - prev.characterPosition.x) < 35
+        );
+        if (nearCandle && prev.characterVelocity > 0 && prev.characterPosition.y > GROUND_Y - 60) {
+          const candleTopY = nearCandle.topY || (GROUND_Y - 50);
+          const distanceToCandle = Math.abs(prev.characterPosition.y - candleTopY);
           
-          if (characterCandle && characterCandle.topY !== undefined) {
-            const candleTopY = characterCandle.topY;
+          // More gentle gravity reduction for smaller jumps
+          if (distanceToCandle < 15) {
+            gravityForce = GRAVITY * 0.6; // Less aggressive reduction
+          } else if (distanceToCandle < 30) {
+            gravityForce = GRAVITY * 0.8; // Mild reduction when approaching
+          }
+          
+          // Recalculate velocity with adjusted gravity
+          newVelocity = prev.characterVelocity + gravityForce;
+          newY = prev.characterPosition.y + newVelocity;
+        }
+        if (candles.length > 0) {
+          // Check for candle collision (character standing on candle) - mobile responsive tolerance
+          const collisionTolerance = Math.max(35, Math.min(50, viewportWidth * 0.06)); // Scale with screen width
+          const characterCandle = candles.find(candle => 
+            Math.abs(candle.x - constrainedCharacterX) < collisionTolerance
+          );
+          
+          if (characterCandle) {
+            // Use the actual visual candle top position if available, otherwise fallback
+            const candleBodyTopY = characterCandle.topY !== undefined ? characterCandle.topY : (GROUND_Y - 50);
+            candleTopY = candleBodyTopY;
             
-            // Check if character is landing on or standing on this candle
+            // Mobile-responsive collision detection for better landing
             const characterBottom = newY;
-            const isLandingOnCandle = prev.characterVelocity >= 0 && // Falling down
-                                    characterBottom >= candleTopY - 5 && // Close to candle top
-                                    characterBottom <= candleTopY + 5; // Not too far below
+            const landingTolerance = Math.max(8, Math.min(15, viewportHeight * 0.02)); // Scale with screen height
+            const fallTolerance = Math.max(12, Math.min(25, viewportHeight * 0.03)); // Scale with screen height
+            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < landingTolerance;
+            const isFallingOntoCandle = prev.characterVelocity >= 0 && 
+              characterBottom >= candleBodyTopY - landingTolerance && 
+              characterBottom <= candleBodyTopY + fallTolerance;
             
-            if (isLandingOnCandle) {
+            if (isOnCandle || isFallingOntoCandle) {
               if (characterCandle.isGreen) {
-                // Successfully landed on green candle
-                newY = candleTopY;
+                // Snap to exact candle top position
+                newY = candleBodyTopY;
                 newVelocity = 0;
                 landedOnCandle = true;
                 
@@ -183,48 +215,101 @@ const Game: React.FC = () => {
                 if (newCandleIndex > prev.currentCandleIndex) {
                   return {
                     ...prev,
-                    characterPosition: { x: constrainedCharacterX, y: newY },
+                    characterPosition: { ...prev.characterPosition, y: newY },
                     characterVelocity: 0,
                     currentCandleIndex: newCandleIndex,
                     score: prev.score + 1,
                     cameraX: newCameraX,
-                    lastRedCandleContact: 0, // Reset red candle contact
+                    canLand: false,
+                    lastRedCandleContact: 0, // Reset red candle contact when landing on green
                   };
                 } else {
-                  // Already on this green candle, maintain position
+                  // Already on this candle, maintain exact position
                   return {
                     ...prev,
-                    characterPosition: { x: constrainedCharacterX, y: candleTopY },
+                    characterPosition: { ...prev.characterPosition, y: candleBodyTopY },
                     characterVelocity: 0,
                     cameraX: newCameraX,
-                    lastRedCandleContact: 0,
+                    canLand: false,
+                    lastRedCandleContact: 0, // Reset red candle contact when on green candle
                   };
                 }
-              } else {
-                // Landed on red candle - immediate game over (no grace period for simplicity)
-                return {
-                  ...prev,
-                  isDead: true,
-                  characterVelocity: 0,
-                  cameraX: newCameraX,
-                };
-              }
+                              } else {
+                  // Landed on red candle - start grace period
+                  const currentTime = Date.now();
+                  const isInGracePeriod = (currentTime - prev.lastRedCandleContact) < prev.redCandleGraceTime;
+                  
+                  if (prev.lastRedCandleContact === 0 || !isInGracePeriod) {
+                    // First contact with red candle or grace period expired - start/restart grace period
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: newY },
+                      characterVelocity: newVelocity,
+                      cameraX: newCameraX,
+                      lastRedCandleContact: currentTime, // Mark the start of grace period
+                      canLand: newCanLand,
+                    };
+                  } else {
+                    // Still in grace period - allow character to stay on red candle
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
+                      characterVelocity: 0,
+                      cameraX: newCameraX,
+                      canLand: false,
+                    };
+                  }
+                }
             }
           }
         }
 
-        // Ground collision - game over if character falls to ground (missed all candles)
+        // Ground collision (fallback if not landed on candle)
         if (!landedOnCandle && newY >= GROUND_Y) {
+          newY = GROUND_Y;
+          newVelocity = 0;
+        }
+
+        // Check if grace period has expired while on red candle
+        const currentTime = Date.now();
+        if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
+          const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
+          if (timeSinceRedContact >= prev.redCandleGraceTime) {
+            // Grace period expired - game over
           return {
             ...prev,
             isDead: true,
-            characterPosition: { x: constrainedCharacterX, y: GROUND_Y },
             characterVelocity: 0,
-            cameraX: newCameraX,
           };
         }
+        }
 
-                // If character is still falling and hasn't landed on anything, continue falling
+        // Additional safety check - if character is floating with no velocity, snap to ground or nearest candle
+        if (!landedOnCandle && Math.abs(newVelocity) < 0.1 && newY < GROUND_Y - 10) {
+          // Find the closest candle below the character - mobile responsive search radius
+          const searchRadius = Math.max(40, Math.min(60, viewportWidth * 0.08)); // Scale with screen width
+          const candidateCandles = candles.filter(candle => 
+            Math.abs(candle.x - constrainedCharacterX) < searchRadius && 
+            candle.topY !== undefined && 
+            candle.topY >= newY - 20
+          );
+          
+          if (candidateCandles.length > 0) {
+            const closestCandle = candidateCandles.reduce((closest, candle) => 
+              Math.abs(candle.x - constrainedCharacterX) < Math.abs(closest.x - constrainedCharacterX) ? candle : closest
+            );
+            
+            if (closestCandle.isGreen && closestCandle.topY !== undefined) {
+              newY = closestCandle.topY;
+              newVelocity = 0;
+              landedOnCandle = true;
+            }
+          } else {
+            // No suitable candle found, fall to ground
+            newY = GROUND_Y;
+            newVelocity = 0;
+          }
+        }
 
         return {
           ...prev,
@@ -281,7 +366,7 @@ const Game: React.FC = () => {
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: 150, y: GROUND_Y - 50 }, // Start on first candle body top
+      characterPosition: { x: 150, y: getGroundY() - 50 }, // Start on first candle body top
       characterVelocity: 0,
       isJumping: false,
       isDead: false,
