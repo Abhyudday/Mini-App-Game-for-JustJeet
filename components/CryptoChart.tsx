@@ -243,6 +243,9 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
         }
       });
 
+      // Update parent with latest candle data including topY values
+      onCandleData(candlesRef.current);
+
       // Draw price labels
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.font = '12px Inter';

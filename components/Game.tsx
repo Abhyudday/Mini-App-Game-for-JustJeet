@@ -18,6 +18,8 @@ interface GameState {
   currentCandleIndex: number;
   cameraX: number; // Camera position that follows character
   canLand: boolean;
+  redCandleGraceTime: number; // Grace period when touching red candle (in ms)
+  lastRedCandleContact: number; // Timestamp of last red candle contact
 }
 
 const GRAVITY = 0.8;
@@ -37,6 +39,8 @@ const Game: React.FC = () => {
     currentCandleIndex: 0,
     cameraX: 0, // Camera starts at 0
     canLand: false,
+    redCandleGraceTime: 800, // 800ms grace period
+    lastRedCandleContact: 0,
   });
 
   const [resetChart, setResetChart] = useState(false);
@@ -101,9 +105,9 @@ const Game: React.FC = () => {
          }
         
         return {
-          ...prev,
+        ...prev,
           characterVelocity: jumpForce,
-          isJumping: true,
+        isJumping: true,
           characterPosition: { 
             ...prev.characterPosition, 
             x: nextCandle.x // Jump directly to next candle position
@@ -170,18 +174,18 @@ const Game: React.FC = () => {
         if (candles.length > 0) {
           // Check for candle collision (character standing on candle)
           const characterCandle = candles.find(candle => 
-            Math.abs(candle.x - prev.characterPosition.x) < 35
+            Math.abs(candle.x - constrainedCharacterX) < 40 // Increased tolerance and use constrained position
           );
           
           if (characterCandle) {
             // Use the actual visual candle top position if available, otherwise fallback
-            const candleBodyTopY = characterCandle.topY || (GROUND_Y - 50);
+            const candleBodyTopY = characterCandle.topY !== undefined ? characterCandle.topY : (GROUND_Y - 50);
             candleTopY = candleBodyTopY;
             
-            // More precise collision detection - check if character is on or very close to candle
+            // More lenient collision detection for better landing
             const characterBottom = newY;
-            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < 5;
-            const isFallingOntoCandle = prev.characterVelocity >= 0 && characterBottom >= candleBodyTopY - 5 && characterBottom <= candleBodyTopY + 10;
+            const isOnCandle = Math.abs(characterBottom - candleBodyTopY) < 10; // Increased tolerance
+            const isFallingOntoCandle = prev.characterVelocity >= 0 && characterBottom >= candleBodyTopY - 10 && characterBottom <= candleBodyTopY + 20; // More lenient range
             
             if (isOnCandle || isFallingOntoCandle) {
               if (characterCandle.isGreen) {
@@ -201,6 +205,7 @@ const Game: React.FC = () => {
                     score: prev.score + 1,
                     cameraX: newCameraX,
                     canLand: false,
+                    lastRedCandleContact: 0, // Reset red candle contact when landing on green
                   };
                 } else {
                   // Already on this candle, maintain exact position
@@ -210,25 +215,83 @@ const Game: React.FC = () => {
                     characterVelocity: 0,
                     cameraX: newCameraX,
                     canLand: false,
+                    lastRedCandleContact: 0, // Reset red candle contact when on green candle
                   };
                 }
-              } else {
-                // Landed on red candle - game over
-                return {
-                  ...prev,
-                  isDead: true,
-                  characterVelocity: 0,
-                  cameraX: newCameraX,
-                };
-              }
+                              } else {
+                  // Landed on red candle - start grace period
+                  const currentTime = Date.now();
+                  const isInGracePeriod = (currentTime - prev.lastRedCandleContact) < prev.redCandleGraceTime;
+                  
+                  if (prev.lastRedCandleContact === 0 || !isInGracePeriod) {
+                    // First contact with red candle or grace period expired - start/restart grace period
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: newY },
+                      characterVelocity: newVelocity,
+                      cameraX: newCameraX,
+                      lastRedCandleContact: currentTime, // Mark the start of grace period
+                      canLand: newCanLand,
+                    };
+                  } else {
+                    // Still in grace period - allow character to stay on red candle
+                    return {
+                      ...prev,
+                      characterPosition: { x: constrainedCharacterX, y: candleBodyTopY },
+                      characterVelocity: 0,
+                      cameraX: newCameraX,
+                      canLand: false,
+                    };
+                  }
+                }
             }
           }
         }
 
-        // Ground collision (only if not landed on candle)
+        // Ground collision (fallback if not landed on candle)
         if (!landedOnCandle && newY >= GROUND_Y) {
           newY = GROUND_Y;
           newVelocity = 0;
+        }
+
+        // Check if grace period has expired while on red candle
+        const currentTime = Date.now();
+        if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
+          const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
+          if (timeSinceRedContact >= prev.redCandleGraceTime) {
+            // Grace period expired - game over
+          return {
+            ...prev,
+            isDead: true,
+            characterVelocity: 0,
+          };
+        }
+        }
+
+        // Additional safety check - if character is floating with no velocity, snap to ground or nearest candle
+        if (!landedOnCandle && Math.abs(newVelocity) < 0.1 && newY < GROUND_Y - 10) {
+          // Find the closest candle below the character
+          const candidateCandles = candles.filter(candle => 
+            Math.abs(candle.x - constrainedCharacterX) < 50 && 
+            candle.topY !== undefined && 
+            candle.topY >= newY - 20
+          );
+          
+          if (candidateCandles.length > 0) {
+            const closestCandle = candidateCandles.reduce((closest, candle) => 
+              Math.abs(candle.x - constrainedCharacterX) < Math.abs(closest.x - constrainedCharacterX) ? candle : closest
+            );
+            
+            if (closestCandle.isGreen && closestCandle.topY !== undefined) {
+              newY = closestCandle.topY;
+              newVelocity = 0;
+              landedOnCandle = true;
+            }
+          } else {
+            // No suitable candle found, fall to ground
+            newY = GROUND_Y;
+            newVelocity = 0;
+          }
         }
 
         return {
@@ -293,6 +356,8 @@ const Game: React.FC = () => {
       currentCandleIndex: 0, // Start at first candle
       cameraX: 0,
       canLand: false,
+      redCandleGraceTime: 800, // Reset grace period
+      lastRedCandleContact: 0,
     }));
     
     // Reset the resetChart flag after a short delay
@@ -315,9 +380,9 @@ const Game: React.FC = () => {
   useEffect(() => {
     const handleInteraction = (e: Event) => {
       if (gameState.state === 'playing') {
-        e.preventDefault();
+      e.preventDefault();
         e.stopPropagation();
-        jump();
+      jump();
       }
     };
 
@@ -408,6 +473,13 @@ const Game: React.FC = () => {
           <div>Char World X: {gameState.characterPosition.x.toFixed(1)}</div>
           <div>Can Land: {gameState.canLand ? 'Yes' : 'No'}</div>
           <div>Score: {gameState.score}</div>
+          <div>Velocity: {gameState.characterVelocity.toFixed(1)}</div>
+          <div>Candles: {candlesRef.current.length}</div>
+          <div className={gameState.lastRedCandleContact > 0 ? 'text-red-400' : ''}>
+            Grace: {gameState.lastRedCandleContact > 0 ? 
+              Math.max(0, gameState.redCandleGraceTime - (Date.now() - gameState.lastRedCandleContact)).toFixed(0) + 'ms' : 
+              'Safe'}
+          </div>
         </div>
       )}
     </div>
