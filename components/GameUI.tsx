@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface GameUIProps {
   score: number;
   highScore: number;
-  gameState: 'menu' | 'playing' | 'gameOver' | 'mysteryCandle';
+  gameState: 'menu' | 'playing' | 'gameOver';
   onStartGame: () => void;
   onRestartGame: () => void;
   onShowLeaderboard: () => void;
@@ -24,7 +24,7 @@ const GameUI: React.FC<GameUIProps> = ({
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
       {/* Score Display */}
       <AnimatePresence>
-        {(gameState === 'playing' || gameState === 'mysteryCandle') && (
+        {gameState === 'playing' && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -57,10 +57,10 @@ const GameUI: React.FC<GameUIProps> = ({
           >
             <div className="bg-black/90 backdrop-blur-md rounded-2xl p-4 border border-green-500/30 mx-auto max-w-sm">
               <div className="text-green-400 text-xl font-bold mb-2">
-                SLIDE TO MOVE!
+                TAP TO FLY!
               </div>
               <div className="text-gray-300 text-sm">
-                Character bounces automatically. Slide finger left/right to move! Avoid red candles! 🔴
+                Keep tapping to stay airborne! Avoid red candles and don't hit the ground! 🔴
               </div>
             </div>
           </motion.div>

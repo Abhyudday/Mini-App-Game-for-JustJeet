@@ -8,30 +8,20 @@ import Leaderboard from './Leaderboard';
 import confetti from 'canvas-confetti';
 
 interface GameState {
-  state: 'menu' | 'playing' | 'gameOver' | 'leaderboard' | 'mysteryCandle';
+  state: 'menu' | 'playing' | 'gameOver' | 'leaderboard';
   score: number;
   highScore: number;
   characterPosition: { x: number; y: number };
-  characterVelocity: number;
+  characterVelocity: number; // Vertical velocity for flappy bird physics
   isDead: boolean;
-  currentCandleIndex: number;
   cameraX: number; // Camera position that follows character
-  redCandleGraceTime: number; // Grace period when touching red candle (in ms)
-  lastRedCandleContact: number; // Timestamp of last red candle contact
-  // Auto-bounce mechanics
-  bounceDirection: 1 | -1; // 1 for up, -1 for down
-  bounceSpeed: number; // Speed of bouncing
-  // Slide controls
-  horizontalVelocity: number; // Left/right movement speed
-  targetX: number; // Target X position for sliding
-  // Mystery candle state
-  mysteryCandles: { x: number; isRed: boolean; revealed: boolean }[];
-  mysteryTapCount: number;
-  lastMysteryScore: number; // Last score when mystery candles appeared
+  gameSpeed: number; // Horizontal movement speed
 }
 
-const GRAVITY = 0.8;
-const JUMP_FORCE = -8; // Reduced jump force for smaller, more controlled jumps
+const GRAVITY = 0.5; // Flappy bird gravity
+const JUMP_FORCE = -8; // Jump force for flappy bird
+const GAME_SPEED = 3; // Horizontal movement speed
+const MAX_FALL_SPEED = 12; // Maximum falling speed
 const getGroundY = () => {
   if (typeof window === 'undefined') return 400;
   // Make ground position responsive - use 70% of screen height for mobile compatibility
@@ -44,23 +34,11 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: 150, y: getGroundY() - 50 }, // Start on first candle body top
+    characterPosition: { x: 100, y: 200 }, // Start at a fixed safe position
     characterVelocity: 0,
     isDead: false,
-    currentCandleIndex: 0,
-    cameraX: 0, // Camera starts at 0
-    redCandleGraceTime: 600, // 600ms grace period (0.6 seconds) - HARDER
-    lastRedCandleContact: 0,
-    // Auto-bounce mechanics
-    bounceDirection: 1, // Start bouncing up
-    bounceSpeed: 4, // Bounce speed
-    // Slide controls
-    horizontalVelocity: 0,
-    targetX: 150, // Start at initial position
-    // Mystery candle state
-    mysteryCandles: [],
-    mysteryTapCount: 0,
-    lastMysteryScore: 0,
+    cameraX: 0,
+    gameSpeed: GAME_SPEED,
   });
 
   const [resetChart, setResetChart] = useState(false);
@@ -87,30 +65,21 @@ const Game: React.FC = () => {
     candlesRef.current = candles;
   }, []);
 
-  // Slide control functions
-  const handleSlideStart = useCallback((clientX: number) => {
-    if (gameState.state !== 'playing' || gameState.isDead) return;
-    
-    setGameState(prev => ({
-      ...prev,
-      targetX: clientX + prev.cameraX, // Convert screen position to world position
-    }));
+  // Flappy Bird jump function
+  const jump = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTouchRef.current < 150) return; // Prevent too rapid tapping
+    lastTouchRef.current = now;
+
+    if (gameState.state === 'playing' && !gameState.isDead) {
+      setGameState(prev => ({
+        ...prev,
+        characterVelocity: JUMP_FORCE, // Apply upward force
+      }));
+    }
   }, [gameState.state, gameState.isDead]);
 
-  const handleSlideMove = useCallback((clientX: number) => {
-    if (gameState.state !== 'playing' || gameState.isDead) return;
-    
-    setGameState(prev => ({
-      ...prev,
-      targetX: clientX + prev.cameraX, // Convert screen position to world position
-    }));
-  }, [gameState.state, gameState.isDead]);
-
-  const handleSlideEnd = useCallback(() => {
-    // Optional: Could add deceleration here
-  }, []);
-
-  // Game loop
+  // Flappy Bird game loop
   useEffect(() => {
     if (gameState.state !== 'playing') return;
 
@@ -118,113 +87,110 @@ const Game: React.FC = () => {
       setGameState(prev => {
         if (prev.state !== 'playing' || prev.isDead) return prev;
 
-        // FIRST PRIORITY: Check red candle grace period expiration
-        if (prev.lastRedCandleContact > 0 && !prev.isDead) {
-          const currentTime = Date.now();
-          const timeSinceRedContact = currentTime - prev.lastRedCandleContact;
-          
-          if (timeSinceRedContact >= prev.redCandleGraceTime) {
-            console.log('IMMEDIATE GAME OVER: Red candle timer expired!', {
-              timeSinceContact: timeSinceRedContact,
-              graceTime: prev.redCandleGraceTime
-            });
-            return {
-              ...prev,
-              isDead: true,
-              characterVelocity: 0,
-              horizontalVelocity: 0,
-            };
-          }
+        // Debug first few frames
+        if (prev.score === 0 && Math.random() < 0.01) {
+          console.log('Game state:', {
+            position: prev.characterPosition,
+            velocity: prev.characterVelocity,
+            candleCount: candlesRef.current.length,
+            firstCandle: candlesRef.current[0]
+          });
         }
 
-        // Auto-bounce mechanics
-        let newVelocity = prev.characterVelocity;
-        let newY = prev.characterPosition.y;
-        let newBounceDirection = prev.bounceDirection;
-        
-        // Constant bouncing up and down
-        if (prev.bounceDirection === 1) {
-          // Moving up
-          newVelocity = -prev.bounceSpeed;
-          newY = prev.characterPosition.y + newVelocity;
-          
-          // Check if reached top of bounce
-          if (newY <= getGroundY() - 120) { // Bounce height limit
-            newBounceDirection = -1; // Start moving down
-            newVelocity = 0;
-          }
-        } else {
-          // Moving down
-          newVelocity = prev.bounceSpeed;
-          newY = prev.characterPosition.y + newVelocity;
-          
-          // Check if reached bottom (ground or candle)
-          if (newY >= getGroundY() - 50) { // Ground level
-            newBounceDirection = 1; // Start moving up
-            newVelocity = 0;
-            newY = getGroundY() - 50; // Snap to ground
-          }
-        }
-        
-        // Horizontal sliding movement
-        let newX = prev.characterPosition.x;
-        let newHorizontalVelocity = prev.horizontalVelocity;
-        
-        // Calculate movement towards target
-        const distanceToTarget = prev.targetX - prev.characterPosition.x;
-        const moveSpeed = 5; // Horizontal movement speed
-        
-        if (Math.abs(distanceToTarget) > 2) {
-          newHorizontalVelocity = distanceToTarget > 0 ? moveSpeed : -moveSpeed;
-          newX = prev.characterPosition.x + newHorizontalVelocity;
-        } else {
-          newHorizontalVelocity = 0;
+        // Apply gravity and update velocity
+        let newVelocity = prev.characterVelocity + GRAVITY;
+        // Cap falling speed
+        if (newVelocity > MAX_FALL_SPEED) {
+          newVelocity = MAX_FALL_SPEED;
         }
 
-        // Get viewport dimensions (mobile-safe)
+        // Update position
+        const newY = prev.characterPosition.y + newVelocity;
+        const newX = prev.characterPosition.x + prev.gameSpeed; // Move forward continuously
+
+        // Get viewport dimensions
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
-        
-        // Update camera to follow character (Mario-style) - mobile responsive
+        const GROUND_Y = getGroundY();
+
+        // Check ground collision
+        if (newY >= GROUND_Y) {
+          console.log('Game over - hit ground:', { y: newY, groundY: GROUND_Y });
+          return {
+            ...prev,
+            isDead: true,
+            characterPosition: { x: newX, y: GROUND_Y },
+            characterVelocity: 0,
+          };
+        }
+
+        // Check ceiling collision
+        if (newY <= 0) {
+          console.log('Game over - hit ceiling:', { y: newY });
+          return {
+            ...prev,
+            isDead: true,
+            characterPosition: { x: newX, y: 0 },
+            characterVelocity: 0,
+          };
+        }
+
+        // Update camera to follow character
         const screenCenter = viewportWidth / 2;
         const cameraTargetX = newX - screenCenter;
-        const newCameraX = Math.max(0, cameraTargetX); // Don't go below 0
+        const newCameraX = Math.max(0, cameraTargetX);
 
-        // Simple collision detection for red candles and scoring
+        // Check candle collisions
         const candles = candlesRef.current;
-        let scoreIncrement = 0;
-        
+        let newScore = prev.score;
+
         if (candles.length > 0) {
-          // Check if character is touching any candle
-          const touchingCandle = candles.find(candle => 
-            Math.abs(candle.x - newX) < 40 && // Horizontal collision
-            Math.abs((candle.topY || getGroundY() - 50) - newY) < 30 // Vertical collision
-          );
-          
-          if (touchingCandle) {
-            // Check if it's a red candle
-            if (!touchingCandle.isGreen && !touchingCandle.isMystery) {
-              // Touched red candle - start grace period or game over
-              const currentTime = Date.now();
-              
-              if (prev.lastRedCandleContact === 0) {
-                // First contact with red candle - start grace period
-                console.log('RED CANDLE CONTACT: Starting grace period');
+          // Character collision box (smaller for more precise collision)
+          const characterWidth = 20;
+          const characterHeight = 20;
+          const characterLeft = newX - characterWidth / 2;
+          const characterRight = newX + characterWidth / 2;
+          const characterTop = newY - characterHeight / 2;
+          const characterBottom = newY + characterHeight / 2;
+
+          for (let candle of candles) {
+            if (!candle.topY || !candle.bottomY) continue;
+
+            // Only check collision with red candles (green candles are passable)
+            if (!candle.isGreen) {
+              // Candle collision box
+              const candleWidth = 25;
+              const candleLeft = candle.x;
+              const candleRight = candle.x + candleWidth;
+              const candleTop = candle.topY;
+              const candleBottom = candle.bottomY;
+
+              // Check if character is colliding with this red candle
+              const isColliding = characterRight > candleLeft && 
+                                characterLeft < candleRight && 
+                                characterBottom > candleTop && 
+                                characterTop < candleBottom;
+
+              if (isColliding) {
+                // Hit red candle - game over
+                console.log('Game over - hit red candle:', {
+                  characterPos: { x: newX, y: newY },
+                  candlePos: { x: candle.x, y: candle.topY },
+                  candleColor: 'red'
+                });
                 return {
                   ...prev,
+                  isDead: true,
                   characterPosition: { x: newX, y: newY },
                   characterVelocity: newVelocity,
-                  bounceDirection: newBounceDirection,
-                  horizontalVelocity: newHorizontalVelocity,
-                  cameraX: newCameraX,
-                  lastRedCandleContact: currentTime,
                 };
               }
-            } else if (touchingCandle.isGreen) {
-              // Touched green candle - check for scoring
-              const candleIndex = candles.indexOf(touchingCandle);
-              if (candleIndex > prev.currentCandleIndex) {
-                scoreIncrement = 1;
-              }
+            }
+
+            // Check if character has passed this candle for scoring
+            if (candle.x < newX - characterWidth && !candle.scored) {
+              candle.scored = true; // Mark as scored to prevent double counting
+              newScore++;
             }
           }
         }
@@ -233,12 +199,8 @@ const Game: React.FC = () => {
           ...prev,
           characterPosition: { x: newX, y: newY },
           characterVelocity: newVelocity,
-          bounceDirection: newBounceDirection,
-          horizontalVelocity: newHorizontalVelocity,
           cameraX: newCameraX,
-          score: prev.score + scoreIncrement,
-          currentCandleIndex: scoreIncrement > 0 ? prev.currentCandleIndex + 1 : prev.currentCandleIndex,
-          lastRedCandleContact: scoreIncrement > 0 ? 0 : prev.lastRedCandleContact, // Reset red contact on scoring
+          score: newScore,
         };
       });
 
@@ -254,23 +216,7 @@ const Game: React.FC = () => {
     };
   }, [gameState.state]);
 
-  // Safety mechanism for mystery candle state
-  useEffect(() => {
-    if (gameState.state === 'mysteryCandle') {
-      // Auto-return to playing after 30 seconds to prevent getting stuck
-      const timeout = setTimeout(() => {
-        console.log('Mystery candle timeout - returning to playing state');
-        setGameState(prev => ({
-          ...prev,
-          state: 'playing',
-          mysteryCandles: [],
-          mysteryTapCount: 0,
-        }));
-      }, 30000);
 
-      return () => clearTimeout(timeout);
-    }
-  }, [gameState.state]);
 
   // Score is now incremented directly in the game loop when landing on green candles
 
@@ -306,23 +252,11 @@ const Game: React.FC = () => {
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: 150, y: getGroundY() - 50 }, // Start on first candle body top
+      characterPosition: { x: 100, y: 200 }, // Start at a fixed safe position
       characterVelocity: 0,
       isDead: false,
-      currentCandleIndex: 0, // Start at first candle
       cameraX: 0,
-      redCandleGraceTime: 600, // Reset grace period (0.6 seconds) - HARDER
-      lastRedCandleContact: 0,
-      // Reset auto-bounce mechanics
-      bounceDirection: 1, // Start bouncing up
-      bounceSpeed: 4, // Bounce speed
-      // Reset slide controls
-      horizontalVelocity: 0,
-      targetX: 150, // Start at initial position
-      // Reset mystery candle state
-      mysteryCandles: [],
-      mysteryTapCount: 0,
-      lastMysteryScore: 0,
+      gameSpeed: GAME_SPEED,
     }));
     
     // Reset the resetChart flag after a short delay
@@ -357,68 +291,33 @@ const Game: React.FC = () => {
     setGameState(prev => ({ ...prev, state: 'menu' }));
   }, []);
 
-  // Touch slide handlers
+  // Touch and click handlers
   useEffect(() => {
-    const handleTouchStart = (e: TouchEvent) => {
+    const handleInteraction = (e: Event) => {
       if (gameState.state === 'playing') {
-        e.preventDefault();
-        const touch = e.touches[0];
-        handleSlideStart(touch.clientX);
+      e.preventDefault();
+        e.stopPropagation();
+      jump();
       }
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (gameState.state === 'playing') {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
         e.preventDefault();
-        const touch = e.touches[0];
-        handleSlideMove(touch.clientX);
+        jump();
       }
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (gameState.state === 'playing') {
-        e.preventDefault();
-        handleSlideEnd();
-      }
-    };
-
-    const handleMouseDown = (e: MouseEvent) => {
-      if (gameState.state === 'playing') {
-        e.preventDefault();
-        handleSlideStart(e.clientX);
-      }
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (gameState.state === 'playing' && e.buttons === 1) { // Only if mouse is down
-        e.preventDefault();
-        handleSlideMove(e.clientX);
-      }
-    };
-
-    const handleMouseUp = (e: MouseEvent) => {
-      if (gameState.state === 'playing') {
-        e.preventDefault();
-        handleSlideEnd();
-      }
-    };
-
-    document.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: false });
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchstart', handleInteraction, { passive: false });
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('keydown', handleKeyPress);
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [handleSlideStart, handleSlideMove, handleSlideEnd, gameState.state]);
+  }, [jump]);
 
   // Prevent scrolling and zooming
   useEffect(() => {
@@ -456,7 +355,7 @@ const Game: React.FC = () => {
             x: gameState.characterPosition.x - gameState.cameraX, // Adjust for camera position
             y: gameState.characterPosition.y 
           }}
-          isJumping={gameState.bounceDirection === 1} // Show jumping animation when bouncing up
+          isJumping={gameState.characterVelocity < 0} // Show jumping when moving upward
           isDead={gameState.isDead}
         />
       )}
@@ -488,17 +387,12 @@ const Game: React.FC = () => {
         <div className="absolute top-4 right-4 bg-black/70 p-2 rounded text-white text-xs" style={{ zIndex: 30 }}>
           <div>Char Y: {gameState.characterPosition.y.toFixed(1)}</div>
           <div>Char X: {gameState.characterPosition.x.toFixed(1)}</div>
-          <div>Target X: {gameState.targetX.toFixed(1)}</div>
           <div>Camera X: {gameState.cameraX.toFixed(1)}</div>
+          <div>Velocity: {gameState.characterVelocity.toFixed(1)}</div>
           <div>Score: {gameState.score}</div>
-          <div>Bounce Dir: {gameState.bounceDirection === 1 ? 'Up' : 'Down'}</div>
-          <div>H Velocity: {gameState.horizontalVelocity.toFixed(1)}</div>
+          <div>Game Speed: {gameState.gameSpeed}</div>
           <div>Candles: {candlesRef.current.length}</div>
-          <div className={gameState.lastRedCandleContact > 0 ? 'text-red-400' : ''}>
-            Grace: {gameState.lastRedCandleContact > 0 ? 
-              Math.max(0, gameState.redCandleGraceTime - (Date.now() - gameState.lastRedCandleContact)).toFixed(0) + 'ms' : 
-              'Safe'}
-          </div>
+          <div>Dead: {gameState.isDead ? 'Yes' : 'No'}</div>
         </div>
       )}
     </div>
