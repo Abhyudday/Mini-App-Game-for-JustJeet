@@ -16,6 +16,7 @@ interface GameState {
   isDead: boolean;
   cameraX: number; // Camera position that follows character
   gameSpeed: number; // Horizontal movement speed
+  started: boolean; // Has the player flapped to start flying?
 }
 
 const GRAVITY = 0.5; // Flappy bird gravity
@@ -39,6 +40,7 @@ const Game: React.FC = () => {
     isDead: false,
     cameraX: 0,
     gameSpeed: GAME_SPEED,
+    started: false,
   });
 
   const [resetChart, setResetChart] = useState(false);
@@ -75,6 +77,7 @@ const Game: React.FC = () => {
       setGameState(prev => ({
         ...prev,
         characterVelocity: JUMP_FORCE, // Apply upward force
+        started: true,
       }));
     }
   }, [gameState.state, gameState.isDead]);
@@ -94,9 +97,17 @@ const Game: React.FC = () => {
           newVelocity = MAX_FALL_SPEED;
         }
 
+        // Before first tap, keep the character anchored on the first visible green candle
+        const candles = candlesRef.current;
+        let anchorY: number | null = null;
+        if (!prev.started && candles.length > 0) {
+          const firstGreen = candles.find((c: any) => c.isGreen && typeof c.topY === 'number');
+          if (firstGreen) anchorY = firstGreen.topY;
+        }
+
         // Update position
-        const newY = prev.characterPosition.y + newVelocity;
-        
+        const newY = anchorY !== null ? anchorY : (prev.characterPosition.y + newVelocity);
+
         // Debug first few frames
         if (prev.score === 0 && Math.random() < 0.1) {
           const GROUND_Y = getGroundY();
@@ -116,8 +127,8 @@ const Game: React.FC = () => {
         const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
         
-        // Out-of-screen checks (top or bottom)
-        if (newY <= 0 || newY >= viewportHeight) {
+        // Out-of-screen checks (top or bottom) – ignore before first tap to avoid instant death on mobile
+        if (prev.started && (newY <= 0 || newY >= viewportHeight)) {
           console.log('Game over - went out of screen:', { y: newY, height: viewportHeight });
           return {
             ...prev,
@@ -133,7 +144,6 @@ const Game: React.FC = () => {
         const newCameraX = Math.max(0, cameraTargetX);
 
         // Check candle collisions
-        const candles = candlesRef.current;
         let newScore = prev.score;
 
         if (candles.length > 0) {
@@ -249,6 +259,7 @@ const Game: React.FC = () => {
       isDead: false,
       cameraX: 0,
       gameSpeed: GAME_SPEED,
+      started: false,
     }));
     
     // Add a small delay to ensure everything is initialized
@@ -259,8 +270,17 @@ const Game: React.FC = () => {
     // Reset the resetChart flag after a short delay
     setTimeout(() => setResetChart(false), 100);
     
-    // In Flappy Bird mode, character starts in air and flies freely
-    // No need to position on first candle
+    // Position on the first green candle if available (visual anchor)
+    setTimeout(() => {
+      const candles = candlesRef.current;
+      const firstGreen = candles.find((c: any) => c.isGreen && typeof c.topY === 'number');
+      if (firstGreen) {
+        setGameState(prev => ({
+          ...prev,
+          characterPosition: { x: firstGreen.x, y: firstGreen.topY },
+        }));
+      }
+    }, 150);
   }, []);
 
   const restartGame = useCallback(() => {
