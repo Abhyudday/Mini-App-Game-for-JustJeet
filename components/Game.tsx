@@ -16,7 +16,6 @@ interface GameState {
   isDead: boolean;
   cameraX: number; // Camera position that follows character
   gameSpeed: number; // Horizontal movement speed
-  started: boolean; // Has the player flapped to start flying?
 }
 
 const GRAVITY = 0.5; // Flappy bird gravity
@@ -24,9 +23,9 @@ const JUMP_FORCE = -8; // Jump force for flappy bird
 const GAME_SPEED = 3; // Horizontal movement speed
 const MAX_FALL_SPEED = 12; // Maximum falling speed
 const getGroundY = () => {
-  if (typeof window === 'undefined') return 500;
-  // For Flappy Bird, ground should be at bottom of screen
-  return Math.max(400, window.innerHeight * 0.85);
+  if (typeof window === 'undefined') return 400;
+  // Make ground position responsive - use 70% of screen height for mobile compatibility
+  return Math.max(300, window.innerHeight * 0.7);
 };
 const CHARACTER_X = 100;
 
@@ -35,12 +34,11 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: 100, y: 100 }, // Start high up in the air
+    characterPosition: { x: 150, y: getGroundY() / 2 }, // Start in middle of screen
     characterVelocity: 0,
     isDead: false,
     cameraX: 0,
     gameSpeed: GAME_SPEED,
-    started: false,
   });
 
   const [resetChart, setResetChart] = useState(false);
@@ -77,7 +75,6 @@ const Game: React.FC = () => {
       setGameState(prev => ({
         ...prev,
         characterVelocity: JUMP_FORCE, // Apply upward force
-        started: true,
       }));
     }
   }, [gameState.state, gameState.isDead]);
@@ -97,43 +94,31 @@ const Game: React.FC = () => {
           newVelocity = MAX_FALL_SPEED;
         }
 
-        // Before first tap, keep the character anchored on the first visible green candle
-        const candles = candlesRef.current;
-        let anchorY: number | null = null;
-        if (!prev.started && candles.length > 0) {
-          const firstGreen = candles.find((c: any) => c.isGreen && typeof c.topY === 'number');
-          if (firstGreen) anchorY = firstGreen.topY;
-        }
-
         // Update position
-        const newY = anchorY !== null ? anchorY : (prev.characterPosition.y + newVelocity);
-
-        // Debug first few frames
-        if (prev.score === 0 && Math.random() < 0.1) {
-          const GROUND_Y = getGroundY();
-          console.log('Game state:', {
-            position: prev.characterPosition,
-            velocity: prev.characterVelocity,
-            newY: newY,
-            groundY: GROUND_Y,
-            candleCount: candlesRef.current.length,
-            firstCandle: candlesRef.current[0],
-            willHitGround: newY >= GROUND_Y
-          });
-        }
+        const newY = prev.characterPosition.y + newVelocity;
         const newX = prev.characterPosition.x + prev.gameSpeed; // Move forward continuously
 
         // Get viewport dimensions
         const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
-        
-        // Out-of-screen checks (top or bottom) – ignore before first tap to avoid instant death on mobile
-        if (prev.started && (newY <= 0 || newY >= viewportHeight)) {
-          console.log('Game over - went out of screen:', { y: newY, height: viewportHeight });
+        const GROUND_Y = getGroundY();
+
+        // Check ground collision
+        if (newY >= GROUND_Y) {
           return {
             ...prev,
             isDead: true,
-            characterPosition: { x: newX, y: Math.max(0, Math.min(newY, viewportHeight)) },
+            characterPosition: { x: newX, y: GROUND_Y },
+            characterVelocity: 0,
+          };
+        }
+
+        // Check ceiling collision
+        if (newY <= 0) {
+          return {
+            ...prev,
+            isDead: true,
+            characterPosition: { x: newX, y: 0 },
             characterVelocity: 0,
           };
         }
@@ -144,6 +129,7 @@ const Game: React.FC = () => {
         const newCameraX = Math.max(0, cameraTargetX);
 
         // Check candle collisions
+        const candles = candlesRef.current;
         let newScore = prev.score;
 
         if (candles.length > 0) {
@@ -158,28 +144,22 @@ const Game: React.FC = () => {
           for (let candle of candles) {
             if (!candle.topY || !candle.bottomY) continue;
 
-            // Only check collision with red candles (green candles are passable)
-            if (!candle.isGreen) {
-              // Candle collision box
-              const candleWidth = 25;
-              const candleLeft = candle.x;
-              const candleRight = candle.x + candleWidth;
-              const candleTop = candle.topY;
-              const candleBottom = candle.bottomY;
+            // Candle collision box
+            const candleWidth = 25;
+            const candleLeft = candle.x;
+            const candleRight = candle.x + candleWidth;
+            const candleTop = candle.topY;
+            const candleBottom = candle.bottomY;
 
-              // Check if character is colliding with this red candle
-              const isColliding = characterRight > candleLeft && 
-                                characterLeft < candleRight && 
-                                characterBottom > candleTop && 
-                                characterTop < candleBottom;
+            // Check if character is colliding with this candle
+            const isColliding = characterRight > candleLeft && 
+                              characterLeft < candleRight && 
+                              characterBottom > candleTop && 
+                              characterTop < candleBottom;
 
-              if (isColliding) {
+            if (isColliding) {
+              if (!candle.isGreen) {
                 // Hit red candle - game over
-                console.log('Game over - hit red candle:', {
-                  characterPos: { x: newX, y: newY },
-                  candlePos: { x: candle.x, y: candle.topY },
-                  candleColor: 'red'
-                });
                 return {
                   ...prev,
                   isDead: true,
@@ -254,33 +234,31 @@ const Game: React.FC = () => {
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: 100, y: 100 }, // Start high up in the air
+      characterPosition: { x: 150, y: getGroundY() / 2 }, // Start in middle of screen
       characterVelocity: 0,
       isDead: false,
       cameraX: 0,
       gameSpeed: GAME_SPEED,
-      started: false,
     }));
-    
-    // Add a small delay to ensure everything is initialized
-    setTimeout(() => {
-      console.log('Game started - character should be flying now');
-    }, 100);
     
     // Reset the resetChart flag after a short delay
     setTimeout(() => setResetChart(false), 100);
     
-    // Position on the first green candle if available (visual anchor)
+    // Fix initial character position after candles are loaded
     setTimeout(() => {
-      const candles = candlesRef.current;
-      const firstGreen = candles.find((c: any) => c.isGreen && typeof c.topY === 'number');
-      if (firstGreen) {
-        setGameState(prev => ({
-          ...prev,
-          characterPosition: { x: firstGreen.x, y: firstGreen.topY },
-        }));
+      if (candlesRef.current.length > 0) {
+        const firstCandle = candlesRef.current[0];
+        if (firstCandle && firstCandle.topY !== undefined) {
+          setGameState(prev => ({
+            ...prev,
+            characterPosition: { 
+              x: firstCandle.x, 
+              y: firstCandle.topY // Place character exactly on first candle
+            }
+          }));
+        }
       }
-    }, 150);
+    }, 200); // Wait for chart to initialize
   }, []);
 
   const restartGame = useCallback(() => {
