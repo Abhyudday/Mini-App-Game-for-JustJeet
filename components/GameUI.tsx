@@ -127,13 +127,19 @@ const GameUI: React.FC<GameUIProps> = ({
                 href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-16 h-16 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer pointer-events-auto p-2"
+                className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors cursor-pointer pointer-events-auto p-2"
               >
                 <img 
-                  src="/dexscreener-logo.png" 
+                  src="https://images.seeklogo.com/logo-png/52/2/dex-screener-logo-png_seeklogo-527276.png" 
                   alt="DEXScreener" 
                   className="w-full h-full object-contain"
+                  onError={(e) => {
+                    console.error('Failed to load DEXScreener logo');
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
+                {/* Fallback text if image fails to load */}
+                <span className="text-white text-lg font-bold hidden" id="dex-fallback">DEX</span>
               </a>
               
               {/* Social Links */}
