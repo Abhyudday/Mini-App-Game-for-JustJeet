@@ -127,9 +127,13 @@ const GameUI: React.FC<GameUIProps> = ({
                 href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors cursor-pointer pointer-events-auto"
+                className="w-16 h-16 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer pointer-events-auto p-2"
               >
-                <span className="text-white text-2xl font-bold">DEX</span>
+                <img 
+                  src="/dexscreener-logo.png" 
+                  alt="DEXScreener" 
+                  className="w-full h-full object-contain"
+                />
               </a>
               
               {/* Social Links */}
