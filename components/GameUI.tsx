@@ -67,14 +67,19 @@ const GameUI: React.FC<GameUIProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Start Menu */}
+            {/* Start Menu */}
       <AnimatePresence>
         {gameState === 'menu' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6 overflow-y-auto"
+            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6 overflow-y-auto min-h-screen"
+            style={{ 
+              height: '100vh',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain'
+            }}
           >
             {/* Top Section - Logo and Buy Button */}
             <div className="flex justify-between items-start mb-6">
@@ -215,7 +220,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 e.preventDefault();
                 onStartGame();
               }}
-              className="w-full max-w-md bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-6 cursor-pointer select-none mx-auto pointer-events-auto block text-center"
+              className="w-full max-w-md bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-6 cursor-pointer select-none mx-auto pointer-events-auto block text-center flex items-center justify-center"
               style={{ 
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation'
