@@ -158,6 +158,37 @@ const GameUI: React.FC<GameUIProps> = ({
               >
                 think you've got what it takes? test your Degen skills with our own JustJeet mini trading game below
               </motion.p>
+
+              {/* JustJeet Movement Description */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="bg-gradient-to-r from-purple-900/80 to-blue-900/80 backdrop-blur-md p-6 rounded-2xl border border-purple-400/30 max-w-3xl mx-auto mb-8"
+              >
+                <h3 className="text-2xl font-bold text-white text-center mb-4">
+                  The JustJeet Movement is
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                    <div className="text-green-400 text-lg font-bold">Pure familiarity</div>
+                  </div>
+                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                    <div className="text-blue-400 text-lg font-bold">Profound resonance</div>
+                  </div>
+                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                    <div className="text-purple-400 text-lg font-bold">Universal empathy</div>
+                  </div>
+                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                    <div className="text-yellow-400 text-lg font-bold">Unparalleled connection</div>
+                  </div>
+                </div>
+                <div className="text-center mt-4">
+                  <p className="text-white text-lg font-semibold">
+                    We are the one, we are in unison, we are the true belief asset.
+                  </p>
+                </div>
+              </motion.div>
             </div>
 
             {/* Game Preview Area */}
@@ -192,7 +223,7 @@ const GameUI: React.FC<GameUIProps> = ({
               </p>
               <div className="bg-black/20 rounded-lg p-3">
                 <p className="text-sm font-mono break-all text-center">
-                  $JustJeet CA: 9M7eYNNP4TdJCmMspKpdbEhvpdds6E5WFVTTLjXfVray
+                  $JustJeet CA: 9M7eYNNP4TdJCmMspKqpbEhvpddsSE5WFVTTLXNY2y
                 </p>
               </div>
             </motion.div>
