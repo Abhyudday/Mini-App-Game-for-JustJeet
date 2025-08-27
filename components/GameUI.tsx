@@ -74,11 +74,12 @@ const GameUI: React.FC<GameUIProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6 overflow-y-auto min-h-screen"
+            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6 overflow-y-auto"
             style={{ 
-              height: '100vh',
+              minHeight: '100vh',
               WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain'
+              overscrollBehavior: 'contain',
+              paddingBottom: '2rem'
             }}
           >
             {/* Top Section - Logo and Buy Button */}
@@ -250,12 +251,43 @@ const GameUI: React.FC<GameUIProps> = ({
               🏆 View Leaderboard
             </motion.button>
 
-            {/* Bottom Green Bar - Contract Address */}
+            {/* JustJeet Movement Description */}
             <motion.div 
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1.4 }}
-              className="bg-green-500 text-black p-4 rounded-lg max-w-2xl mx-auto w-full"
+              className="bg-white text-black p-6 rounded-lg max-w-2xl mx-auto w-full mb-6"
+            >
+              <h3 className="font-bold text-center text-lg mb-4">The JustJeet movement is</h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">•</span>
+                  Pure familiarity
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">•</span>
+                  Profound resonance
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">•</span>
+                  Universal empathy
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-2">•</span>
+                  Unparalleled connection
+                </li>
+              </ul>
+              <p className="text-center font-semibold mt-4 text-sm">
+                We are the one, we are in unison, we are the true belief asset.
+              </p>
+            </motion.div>
+
+            {/* Bottom Green Bar - Coin Description */}
+            <motion.div 
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 1.6 }}
+              className="bg-green-500 text-black p-4 rounded-lg max-w-2xl mx-auto w-full mb-8"
             >
               <p className="font-bold text-center text-sm">
                 JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
