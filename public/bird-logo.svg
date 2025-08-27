@@ -1,0 +1,18 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bird head silhouette -->
+  <path d="M32 8C18.745 8 8 18.745 8 32C8 45.255 18.745 56 32 56C45.255 56 56 45.255 56 32C56 18.745 45.255 8 32 8Z" fill="white"/>
+  
+  <!-- Bird head details -->
+  <path d="M24 24H24C22.895 24 22 24.895 22 26V38C22 39.105 22.895 40 24 40H32C33.105 40 34 39.105 34 38V26C34 24.895 33.105 24 32 24H24Z" fill="black"/>
+  
+  <!-- Eyes -->
+  <circle cx="28" cy="30" r="2" fill="white"/>
+  <circle cx="36" cy="30" r="2" fill="white"/>
+  
+  <!-- Beak -->
+  <path d="M30 36L32 40L34 36H30Z" fill="white"/>
+  
+  <!-- Ear tufts/horns -->
+  <path d="M26 20L28 16L30 20H26Z" fill="white"/>
+  <path d="M34 20L36 16L38 20H34Z" fill="white"/>
+</svg>

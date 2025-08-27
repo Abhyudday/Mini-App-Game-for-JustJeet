@@ -82,6 +82,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
+                className="flex-1 text-center"
               >
                 <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
                   JUSTJEET
@@ -89,7 +90,7 @@ const GameUI: React.FC<GameUIProps> = ({
               </motion.div>
               
               <motion.a
-                href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
+                href="https://dexscreener.com/solana/9M7eYNNP4TdJCmMspKpdbEhvpdds6E5WFVTTLjXfVray"
                 target="_blank"
                 rel="noopener noreferrer"
                 initial={{ scale: 0 }}
@@ -156,9 +157,13 @@ const GameUI: React.FC<GameUIProps> = ({
                 href="https://t.me/officialJustJeet"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-400 transition-colors cursor-pointer pointer-events-auto"
+                className="w-16 h-16 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer pointer-events-auto p-2"
               >
-                <span className="text-white text-2xl">📱</span>
+                <img 
+                  src="/bird-logo.svg" 
+                  alt="JustJeet Bird Logo" 
+                  className="w-full h-full object-contain"
+                />
               </a>
             </motion.div>
 
