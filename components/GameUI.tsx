@@ -74,7 +74,7 @@ const GameUI: React.FC<GameUIProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6"
+            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6 overflow-y-auto"
           >
             {/* Top Section - Logo and Buy Button */}
             <div className="flex justify-between items-start mb-6">
@@ -85,7 +85,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 className="flex-1 text-center"
               >
                 <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-                  JUSTJEET
+                  CRYPTOJUMP
                 </h1>
               </motion.div>
               
@@ -128,7 +128,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors cursor-pointer pointer-events-auto p-2"
+                className="w-16 h-16 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer pointer-events-auto p-2"
               >
                 <img 
                   src="https://images.seeklogo.com/logo-png/52/2/dex-screener-logo-png_seeklogo-527276.png" 
@@ -215,7 +215,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 e.preventDefault();
                 onStartGame();
               }}
-              className="w-full max-w-md bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-6 cursor-pointer select-none mx-auto pointer-events-auto"
+              className="w-full max-w-md bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-6 cursor-pointer select-none mx-auto pointer-events-auto block"
               style={{ 
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation'
