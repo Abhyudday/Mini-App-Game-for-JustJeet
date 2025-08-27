@@ -160,8 +160,8 @@ const GameUI: React.FC<GameUIProps> = ({
                 className="w-16 h-16 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer pointer-events-auto p-2"
               >
                 <img 
-                  src="/bird-logo.svg" 
-                  alt="JustJeet Bird Logo" 
+                  src="https://pngimg.com/uploads/telegram/telegram_PNG35.png" 
+                  alt="Telegram" 
                   className="w-full h-full object-contain"
                 />
               </a>
