@@ -76,76 +76,76 @@ const GameUI: React.FC<GameUIProps> = ({
             exit={{ opacity: 0 }}
             className="absolute inset-0 flex flex-col items-center justify-center bg-black pointer-events-auto px-4"
           >
-            {/* Header Section */}
-            <div className="text-center mb-8">
+            {/* Header Section - Compact Layout */}
+            <div className="text-center mb-4">
               <motion.div
-                initial={{ y: -50, opacity: 0 }}
+                initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="mb-6"
+                className="mb-3"
               >
-                <h1 className="text-5xl md:text-6xl font-black text-white mb-2 tracking-tight">
+                <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
                   JUSTJEET
                 </h1>
-                <div className="w-full max-w-md mx-auto bg-white rounded-lg p-4 mb-4">
-                  <div className="text-black text-sm font-mono break-all">
+                <div className="w-full max-w-sm mx-auto bg-white rounded-lg p-3 mb-3">
+                  <div className="text-black text-xs font-mono break-all leading-tight">
                     JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
                   </div>
                 </div>
               </motion.div>
 
-              {/* Buy Button and DEX Links */}
+              {/* Buy Button and DEX Links - Compact */}
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="flex flex-col items-center space-y-4 mb-6"
+                className="flex flex-col items-center space-y-3 mb-4"
               >
                 <a 
                   href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-3 px-8 rounded-full text-lg transition-all duration-200 shadow-lg"
+                  className="bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-2 px-6 rounded-full text-base transition-all duration-200 shadow-lg"
                 >
                   BUY HERE
                 </a>
                 
-                {/* DEX Logo and Socials */}
-                <div className="flex items-center space-x-6">
+                {/* DEX Logo and Socials - Compact */}
+                <div className="flex items-center space-x-4">
                   <a 
                     href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-white hover:text-green-400 transition-colors"
+                    className="flex items-center space-x-1 text-white hover:text-green-400 transition-colors"
                   >
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">DX</span>
+                    <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">DX</span>
                     </div>
-                    <span className="text-sm">DEXScreener</span>
+                    <span className="text-xs">DEX</span>
                   </a>
                   
                   <a 
                     href="https://x.com/JustJeetSol?t=6f6zFN6IERRjkEjALDXpZQ&s=09"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-white hover:text-blue-400 transition-colors"
+                    className="flex items-center space-x-1 text-white hover:text-blue-400 transition-colors"
                   >
-                    <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">𝕏</span>
+                    <div className="w-6 h-6 bg-black rounded-lg flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">𝕏</span>
                     </div>
-                    <span className="text-sm">Twitter</span>
+                    <span className="text-xs">X</span>
                   </a>
                   
                   <a 
                     href="https://t.me/officialJustJeet"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-white hover:text-blue-500 transition-colors"
+                    className="flex items-center space-x-1 text-white hover:text-blue-500 transition-colors"
                   >
-                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-sm font-bold">📱</span>
+                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">📱</span>
                     </div>
-                    <span className="text-sm">Telegram</span>
+                    <span className="text-xs">TG</span>
                   </a>
                 </div>
               </motion.div>
@@ -154,81 +154,50 @@ const GameUI: React.FC<GameUIProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-white text-lg md:text-xl mb-8 max-w-2xl mx-auto font-light italic"
+                className="text-white text-sm mb-4 max-w-lg mx-auto font-light italic"
               >
                 think you've got what it takes? test your Degen skills with our own JustJeet mini trading game below
               </motion.p>
-
-              {/* JustJeet Movement Description */}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="bg-gradient-to-r from-purple-900/80 to-blue-900/80 backdrop-blur-md p-6 rounded-2xl border border-purple-400/30 max-w-3xl mx-auto mb-8"
-              >
-                <h3 className="text-2xl font-bold text-white text-center mb-4">
-                  The JustJeet Movement is
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
-                    <div className="text-green-400 text-lg font-bold">Pure familiarity</div>
-                  </div>
-                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
-                    <div className="text-blue-400 text-lg font-bold">Profound resonance</div>
-                  </div>
-                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
-                    <div className="text-purple-400 text-lg font-bold">Universal empathy</div>
-                  </div>
-                  <div className="bg-white/10 rounded-lg p-3 border border-white/20">
-                    <div className="text-yellow-400 text-lg font-bold">Unparalleled connection</div>
-                  </div>
-                </div>
-                <div className="text-center mt-4">
-                  <p className="text-white text-lg font-semibold">
-                    We are the one, we are in unison, we are the true belief asset.
-                  </p>
-                </div>
-              </motion.div>
             </div>
 
-            {/* Game Preview Area */}
+            {/* Game Preview Area - Compact */}
             <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="w-full max-w-lg aspect-video bg-gray-800 rounded-lg mb-6 relative overflow-hidden"
+              className="w-full max-w-sm aspect-video bg-gray-800 rounded-lg mb-4 relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900 opacity-50"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-4xl font-bold text-white">JustJeet</div>
-                <div className="text-2xl ml-2">🎮</div>
+                <div className="text-2xl font-bold text-white">JustJeet</div>
+                <div className="text-lg ml-2">🎮</div>
               </div>
               {highScore > 0 && (
-                <div className="absolute top-4 right-4 bg-yellow-500/20 backdrop-blur-sm rounded-lg px-3 py-1">
+                <div className="absolute top-2 right-2 bg-yellow-500/20 backdrop-blur-sm rounded-lg px-2 py-1">
                   <div className="text-yellow-400 text-xs font-semibold">BEST</div>
-                  <div className="text-white text-lg font-bold">{highScore.toLocaleString()}</div>
+                  <div className="text-white text-sm font-bold">{highScore.toLocaleString()}</div>
                 </div>
               )}
             </motion.div>
 
-            {/* Contract Address and Description */}
+            {/* Contract Address and Description - Compact */}
             <motion.div 
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1 }}
-              className="bg-green-500 text-black p-4 rounded-lg mb-8 max-w-2xl mx-auto"
+              className="bg-green-500 text-black p-3 rounded-lg mb-4 max-w-lg mx-auto"
             >
-              <p className="font-bold text-center mb-3">
+              <p className="font-bold text-center mb-2 text-sm leading-tight">
                 JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
               </p>
-              <div className="bg-black/20 rounded-lg p-3">
-                <p className="text-sm font-mono break-all text-center">
+              <div className="bg-black/20 rounded-lg p-2">
+                <p className="text-xs font-mono break-all text-center">
                   $JustJeet CA: 9M7eYNNP4TdJCmMspKqpbEhvpddsSE5WFVTTLXNY2y
                 </p>
               </div>
             </motion.div>
 
-            {/* Play Button */}
+            {/* Play Button - Prominent */}
             <motion.button
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -240,7 +209,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 e.preventDefault();
                 onStartGame();
               }}
-              className="w-full max-w-md bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-4 cursor-pointer select-none"
+              className="w-full max-w-sm bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-3 px-6 rounded-full text-lg transition-all duration-200 shadow-lg mb-3 cursor-pointer select-none border-2 border-green-300"
               style={{ 
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation'
@@ -249,7 +218,7 @@ const GameUI: React.FC<GameUIProps> = ({
               PLAY JUSTJEET GAME
             </motion.button>
 
-            {/* Leaderboard Button */}
+            {/* Leaderboard Button - Compact */}
             <motion.button
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -261,7 +230,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 e.preventDefault();
                 onShowLeaderboard();
               }}
-              className="text-green-400 hover:text-green-300 active:text-green-500 font-semibold transition-colors duration-200 cursor-pointer select-none"
+              className="text-green-400 hover:text-green-300 active:text-green-500 font-semibold transition-colors duration-200 cursor-pointer select-none text-sm"
               style={{ 
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation'
