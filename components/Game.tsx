@@ -23,9 +23,9 @@ const JUMP_FORCE = -8; // Jump force for flappy bird
 const GAME_SPEED = 3; // Horizontal movement speed
 const MAX_FALL_SPEED = 12; // Maximum falling speed
 const getGroundY = () => {
-  if (typeof window === 'undefined') return 400;
-  // Make ground position responsive - use 70% of screen height for mobile compatibility
-  return Math.max(300, window.innerHeight * 0.7);
+  if (typeof window === 'undefined') return 500;
+  // For Flappy Bird, ground should be at bottom of screen
+  return Math.max(400, window.innerHeight * 0.85);
 };
 const CHARACTER_X = 100;
 
@@ -34,7 +34,7 @@ const Game: React.FC = () => {
     state: 'menu',
     score: 0,
     highScore: 0,
-    characterPosition: { x: 100, y: 200 }, // Start at a fixed safe position
+    characterPosition: { x: 100, y: 100 }, // Start high up in the air
     characterVelocity: 0,
     isDead: false,
     cameraX: 0,
@@ -87,16 +87,6 @@ const Game: React.FC = () => {
       setGameState(prev => {
         if (prev.state !== 'playing' || prev.isDead) return prev;
 
-        // Debug first few frames
-        if (prev.score === 0 && Math.random() < 0.01) {
-          console.log('Game state:', {
-            position: prev.characterPosition,
-            velocity: prev.characterVelocity,
-            candleCount: candlesRef.current.length,
-            firstCandle: candlesRef.current[0]
-          });
-        }
-
         // Apply gravity and update velocity
         let newVelocity = prev.characterVelocity + GRAVITY;
         // Cap falling speed
@@ -106,31 +96,33 @@ const Game: React.FC = () => {
 
         // Update position
         const newY = prev.characterPosition.y + newVelocity;
+        
+        // Debug first few frames
+        if (prev.score === 0 && Math.random() < 0.1) {
+          const GROUND_Y = getGroundY();
+          console.log('Game state:', {
+            position: prev.characterPosition,
+            velocity: prev.characterVelocity,
+            newY: newY,
+            groundY: GROUND_Y,
+            candleCount: candlesRef.current.length,
+            firstCandle: candlesRef.current[0],
+            willHitGround: newY >= GROUND_Y
+          });
+        }
         const newX = prev.characterPosition.x + prev.gameSpeed; // Move forward continuously
 
         // Get viewport dimensions
         const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 600;
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 800;
-        const GROUND_Y = getGroundY();
-
-        // Check ground collision
-        if (newY >= GROUND_Y) {
-          console.log('Game over - hit ground:', { y: newY, groundY: GROUND_Y });
+        
+        // Out-of-screen checks (top or bottom)
+        if (newY <= 0 || newY >= viewportHeight) {
+          console.log('Game over - went out of screen:', { y: newY, height: viewportHeight });
           return {
             ...prev,
             isDead: true,
-            characterPosition: { x: newX, y: GROUND_Y },
-            characterVelocity: 0,
-          };
-        }
-
-        // Check ceiling collision
-        if (newY <= 0) {
-          console.log('Game over - hit ceiling:', { y: newY });
-          return {
-            ...prev,
-            isDead: true,
-            characterPosition: { x: newX, y: 0 },
+            characterPosition: { x: newX, y: Math.max(0, Math.min(newY, viewportHeight)) },
             characterVelocity: 0,
           };
         }
@@ -252,31 +244,23 @@ const Game: React.FC = () => {
       ...prev,
       state: 'playing',
       score: 0,
-      characterPosition: { x: 100, y: 200 }, // Start at a fixed safe position
+      characterPosition: { x: 100, y: 100 }, // Start high up in the air
       characterVelocity: 0,
       isDead: false,
       cameraX: 0,
       gameSpeed: GAME_SPEED,
     }));
     
+    // Add a small delay to ensure everything is initialized
+    setTimeout(() => {
+      console.log('Game started - character should be flying now');
+    }, 100);
+    
     // Reset the resetChart flag after a short delay
     setTimeout(() => setResetChart(false), 100);
     
-    // Fix initial character position after candles are loaded
-    setTimeout(() => {
-      if (candlesRef.current.length > 0) {
-        const firstCandle = candlesRef.current[0];
-        if (firstCandle && firstCandle.topY !== undefined) {
-          setGameState(prev => ({
-            ...prev,
-            characterPosition: { 
-              x: firstCandle.x, 
-              y: firstCandle.topY // Place character exactly on first candle
-            }
-          }));
-        }
-      }
-    }, 200); // Wait for chart to initialize
+    // In Flappy Bird mode, character starts in air and flies freely
+    // No need to position on first candle
   }, []);
 
   const restartGame = useCallback(() => {
