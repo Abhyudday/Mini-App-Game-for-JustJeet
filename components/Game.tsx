@@ -8,7 +8,7 @@ import Leaderboard from './Leaderboard';
 import confetti from 'canvas-confetti';
 
 interface GameState {
-  state: 'menu' | 'playing' | 'gameOver' | 'leaderboard' | 'mysteryCandle';
+  state: 'menu' | 'playing' | 'gameOver' | 'leaderboard';
   score: number;
   highScore: number;
   characterPosition: { x: number; y: number };
@@ -23,10 +23,6 @@ interface GameState {
   jumpStartX: number; // Starting X position for jump animation
   jumpTargetX: number; // Target X position for jump animation
   jumpProgress: number; // Jump animation progress (0 to 1)
-  // Mystery candle state
-  mysteryCandles: { x: number; isRed: boolean; revealed: boolean }[];
-  mysteryTapCount: number;
-  lastMysteryScore: number; // Last score when mystery candles appeared
 }
 
 const GRAVITY = 0.8;
@@ -55,10 +51,6 @@ const Game: React.FC = () => {
     jumpStartX: 150,
     jumpTargetX: 150,
     jumpProgress: 1, // Not jumping initially
-    // Mystery candle state
-    mysteryCandles: [],
-    mysteryTapCount: 0,
-    lastMysteryScore: 0,
   });
 
   const [resetChart, setResetChart] = useState(false);
@@ -90,81 +82,6 @@ const Game: React.FC = () => {
     const now = Date.now();
           if (now - lastTouchRef.current < 300) return; // Slightly slower tapping for more precision - HARDER
     lastTouchRef.current = now;
-
-    // Handle mystery candle jumping
-    if (gameState.state === 'mysteryCandle') {
-      const newTapCount = gameState.mysteryTapCount + 1;
-      
-      if (newTapCount <= 3) {
-        // Find the target mystery candle based on tap count
-        const targetCandleIndex = newTapCount - 1; // 0, 1, or 2
-        const targetCandle = gameState.mysteryCandles[targetCandleIndex];
-        
-        if (targetCandle) {
-          // Jump to the selected mystery candle
-          setGameState(prev => {
-            const candles = candlesRef.current;
-            const mysteryCandle = candles.find(candle => 
-              Math.abs(candle.x - targetCandle.x) < 30 && candle.isMystery
-            );
-            
-            if (mysteryCandle) {
-              // Calculate jump force
-              let jumpForce = JUMP_FORCE;
-              const currentCandle = candles.find(candle => 
-                Math.abs(candle.x - prev.characterPosition.x) < 35
-              );
-              
-              if (currentCandle && mysteryCandle.topY !== undefined && currentCandle.topY !== undefined) {
-                const heightDifference = mysteryCandle.topY - currentCandle.topY;
-                if (heightDifference < 0) {
-                  const requiredHeight = Math.abs(heightDifference) + 30;
-                  if (requiredHeight > 0 && GRAVITY > 0) {
-                    const calculatedForce = -Math.sqrt(2 * GRAVITY * requiredHeight);
-                    if (!isNaN(calculatedForce) && isFinite(calculatedForce)) {
-                      jumpForce = Math.max(calculatedForce, -30);
-                    }
-                  }
-                }
-              }
-              
-              const finalJumpForce = (jumpForce && isFinite(jumpForce) && jumpForce < 0) ? jumpForce : JUMP_FORCE;
-              
-              console.log(`Jumping to mystery candle ${newTapCount} at position ${targetCandle.x}`);
-              
-              return {
-                ...prev,
-                characterVelocity: finalJumpForce,
-                isJumping: true,
-                characterPosition: { 
-                  ...prev.characterPosition, 
-                  x: targetCandle.x // Move to target mystery candle
-                },
-                jumpStartX: prev.characterPosition.x,
-                jumpTargetX: targetCandle.x,
-                jumpProgress: 0,
-                mysteryTapCount: newTapCount,
-                lastRedCandleContact: 0,
-              };
-            }
-            
-            return {
-              ...prev,
-              mysteryTapCount: newTapCount,
-            };
-          });
-          
-          // Reset jumping state after animation
-          setTimeout(() => {
-            setGameState(prev => ({ 
-              ...prev, 
-              isJumping: false
-            }));
-          }, 350);
-        }
-      }
-      return;
-    }
 
     if (gameState.state === 'playing' && !gameState.isDead && !gameState.isJumping) {
       setGameState(prev => {
@@ -275,11 +192,11 @@ const Game: React.FC = () => {
 
   // Game loop
   useEffect(() => {
-    if (gameState.state !== 'playing' && gameState.state !== 'mysteryCandle') return;
+    if (gameState.state !== 'playing') return;
 
     const gameLoop = () => {
       setGameState(prev => {
-        if ((prev.state !== 'playing' && prev.state !== 'mysteryCandle') || prev.isDead) return prev;
+        if (prev.state !== 'playing' || prev.isDead) return prev;
 
         // FIRST PRIORITY: Check red candle grace period expiration (but not while jumping)
         if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
@@ -385,66 +302,7 @@ const Game: React.FC = () => {
             const shouldLandOnCandle = isFallingOntoCandle || (isAboveCandle && Math.abs(characterBottom - candleBodyTopY) < landingTolerance);
             
             if (shouldLandOnCandle) {
-              // Check if this is a mystery candle
-              if (characterCandle.isMystery && !characterCandle.mysteryRevealed) {
-                // Find the corresponding mystery candle in state
-                const mysteryCandle = prev.mysteryCandles.find(mc => 
-                  Math.abs(mc.x - characterCandle.x) < 30
-                );
-                
-                if (mysteryCandle) {
-                  // Reveal the mystery candle
-                  const updatedMysteryCandles = prev.mysteryCandles.map(mc => 
-                    mc.x === mysteryCandle.x ? { ...mc, revealed: true } : mc
-                  );
-                  
-                  // Update the candle in the candles array
-                  characterCandle.mysteryRevealed = true;
-                  characterCandle.isGreen = !mysteryCandle.isRed;
-                  
-                  // Snap to candle top position
-                  newY = candleBodyTopY;
-                  newVelocity = 0;
-                  landedOnCandle = true;
-                  
-                  console.log(`Landed on mystery candle. Is red: ${mysteryCandle.isRed}, Tap count: ${prev.mysteryTapCount}`);
-                  
-                  if (mysteryCandle.isRed) {
-                    // Game over - landed on red mystery candle
-                    console.log('Game over - landed on red mystery candle');
-                    return {
-                      ...prev,
-                      characterPosition: { x: constrainedCharacterX, y: newY },
-                      characterVelocity: 0,
-                      cameraX: newCameraX,
-                      canLand: false,
-                      mysteryCandles: updatedMysteryCandles,
-                      isDead: true, // Game over
-                    };
-                  } else {
-                    // Safe mystery candle - continue or return to normal gameplay
-                    const newCandleIndex = candles.indexOf(characterCandle);
-                    const newScore = newCandleIndex > prev.currentCandleIndex ? prev.score + 1 : prev.score;
-                    
-                    console.log(`Safe mystery candle! Tap count: ${prev.mysteryTapCount}, returning to playing: ${prev.mysteryTapCount >= 3}`);
-                    
-                    // Return to normal gameplay after any mystery candle selection
-                    return {
-                      ...prev,
-                      characterPosition: { x: constrainedCharacterX, y: newY },
-                      characterVelocity: 0,
-                      currentCandleIndex: Math.max(newCandleIndex, prev.currentCandleIndex),
-                      score: newScore,
-                      cameraX: newCameraX,
-                      canLand: false,
-                      lastRedCandleContact: 0,
-                      mysteryCandles: prev.mysteryTapCount >= 3 ? [] : updatedMysteryCandles, // Clear mystery candles if done
-                      state: 'playing', // Always return to playing after landing on any mystery candle
-                      mysteryTapCount: prev.mysteryTapCount >= 3 ? 0 : prev.mysteryTapCount, // Reset tap count if done
-                    };
-                  }
-                }
-              } else if (characterCandle.isGreen) {
+              if (characterCandle.isGreen) {
                 // Snap to exact candle top position
                 newY = candleBodyTopY;
                 newVelocity = 0;
@@ -453,78 +311,12 @@ const Game: React.FC = () => {
                 // Check if this is a new candle for scoring
                 const newCandleIndex = candles.indexOf(characterCandle);
                 if (newCandleIndex > prev.currentCandleIndex) {
-                  const newScore = prev.score + 1;
-                  
-                  // Check if mystery candles should appear (every 10-12 score)
-                  const shouldTriggerMystery = newScore > 0 && 
-                    (newScore % 10 === 0 || newScore % 12 === 0) && 
-                    Math.random() < 0.8 && // 80% chance at score multiples of 10 or 12
-                    (newScore - prev.lastMysteryScore) >= 8; // At least 8 points since last mystery
-                  
-                  if (shouldTriggerMystery) {
-                    // Generate mystery candles
-                    const mysteryCandles = [];
-                    const basePrice = candles[newCandleIndex]?.close || 100;
-                    
-                    // Create 3 mystery candles ahead of the character
-                    for (let i = 0; i < 3; i++) {
-                      const candleX = prev.characterPosition.x + 120 + (i * 60);
-                      
-                      // Create actual candle data for the chart
-                      const mysteryCandle = {
-                        x: candleX,
-                        open: basePrice,
-                        high: basePrice * 1.02,
-                        low: basePrice * 0.98,
-                        close: basePrice * (Math.random() > 0.5 ? 1.01 : 0.99),
-                        isGreen: true, // Will be overridden by mystery display
-                        topY: undefined,
-                        bottomY: undefined,
-                        isMystery: true,
-                        mysteryRevealed: false
-                      };
-                      
-                      // Add to candles array
-                      candles.push(mysteryCandle);
-                      
-                      mysteryCandles.push({
-                        x: candleX,
-                        isRed: false, // Will be set below
-                        revealed: false
-                      });
-                    }
-                    
-                    // Ensure exactly one candle is red
-                    const redIndex = Math.floor(Math.random() * 3);
-                    mysteryCandles.forEach((candle, index) => {
-                      candle.isRed = index === redIndex;
-                    });
-                    
-                    // Update the candles ref with new mystery candles
-                    candlesRef.current = candles;
-                    
-                    return {
-                      ...prev,
-                      characterPosition: { ...prev.characterPosition, y: newY },
-                      characterVelocity: 0,
-                      currentCandleIndex: newCandleIndex,
-                      score: newScore,
-                      cameraX: newCameraX,
-                      canLand: false,
-                      lastRedCandleContact: 0,
-                      state: 'mysteryCandle', // Switch to mystery candle mode
-                      mysteryCandles,
-                      mysteryTapCount: 0,
-                      lastMysteryScore: newScore,
-                    };
-                  }
-                  
                   return {
                     ...prev,
                     characterPosition: { ...prev.characterPosition, y: newY },
                     characterVelocity: 0,
                     currentCandleIndex: newCandleIndex,
-                    score: newScore,
+                    score: prev.score + 1,
                     cameraX: newCameraX,
                     canLand: false,
                     lastRedCandleContact: 0, // Reset red candle contact when landing on green
@@ -719,24 +511,6 @@ const Game: React.FC = () => {
     };
   }, [gameState.state]);
 
-  // Safety mechanism for mystery candle state
-  useEffect(() => {
-    if (gameState.state === 'mysteryCandle') {
-      // Auto-return to playing after 30 seconds to prevent getting stuck
-      const timeout = setTimeout(() => {
-        console.log('Mystery candle timeout - returning to playing state');
-        setGameState(prev => ({
-          ...prev,
-          state: 'playing',
-          mysteryCandles: [],
-          mysteryTapCount: 0,
-        }));
-      }, 30000);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [gameState.state]);
-
   // Score is now incremented directly in the game loop when landing on green candles
 
   // Handle game over
@@ -783,10 +557,6 @@ const Game: React.FC = () => {
       jumpStartX: 150,
       jumpTargetX: 150,
       jumpProgress: 1, // Not jumping initially
-      // Reset mystery candle state
-      mysteryCandles: [],
-      mysteryTapCount: 0,
-      lastMysteryScore: 0,
     }));
     
     // Reset the resetChart flag after a short delay
@@ -879,7 +649,7 @@ const Game: React.FC = () => {
       />
 
       {/* Character */}
-      {(gameState.state === 'playing' || gameState.state === 'gameOver' || gameState.state === 'mysteryCandle') && (
+      {(gameState.state === 'playing' || gameState.state === 'gameOver') && (
         <Character
           position={{ 
             x: gameState.characterPosition.x - gameState.cameraX, // Adjust for camera position
@@ -908,38 +678,6 @@ const Game: React.FC = () => {
           currentScore={gameState.score}
           onBack={backToMenu}
         />
-      )}
-
-      {/* Mystery Candle Instructions */}
-      {gameState.state === 'mysteryCandle' && (
-        <div className="fixed top-4 left-4 right-4 z-50 flex justify-center">
-          <div className="bg-gradient-to-r from-purple-900/95 to-blue-900/95 backdrop-blur-md p-4 rounded-2xl border border-purple-400/50 max-w-md shadow-2xl">
-            <div className="text-center">
-              <div className="animate-bounce mb-2">
-                <h3 className="text-xl font-bold text-white">🎯 Mystery Candles!</h3>
-              </div>
-              <div className="flex justify-center gap-1 mb-2">
-                <span className="w-3 h-4 bg-white rounded-sm"></span>
-                <span className="w-3 h-4 bg-white rounded-sm"></span>
-                <span className="w-3 h-4 bg-white rounded-sm"></span>
-              </div>
-              <p className="text-purple-200 text-sm mb-3">
-                3 white mystery candles ahead! One is <span className="text-red-400 font-bold">RED (deadly)</span>, two are <span className="text-green-400 font-bold">SAFE</span>.
-              </p>
-              <div className="bg-black/30 rounded-lg p-3 border border-white/20">
-                <div className="text-cyan-300 font-bold text-lg">
-                  {gameState.mysteryTapCount === 0 && "🥇 Tap ONCE → Jump to 1st candle"}
-                  {gameState.mysteryTapCount === 1 && "🥈 Tap AGAIN → Jump to 2nd candle"} 
-                  {gameState.mysteryTapCount === 2 && "🥉 Tap ONCE MORE → Jump to 3rd candle"}
-                  {gameState.mysteryTapCount === 3 && "✅ Selection made! Landing..."}
-                </div>
-                <div className="text-xs text-gray-300 mt-2">
-                  Progress: {gameState.mysteryTapCount}/3 taps
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Debug info (remove in production) */}

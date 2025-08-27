@@ -11,8 +11,6 @@ interface CandleData {
   isGreen: boolean;
   topY?: number; // Visual top position of candle body
   bottomY?: number; // Visual bottom position of candle body
-  isMystery?: boolean; // Mystery candle flag
-  mysteryRevealed?: boolean; // Whether mystery candle has been revealed
 }
 
 interface CryptoChartProps {
@@ -270,86 +268,30 @@ const CryptoChart: React.FC<CryptoChartProps> = ({ cameraX, onCandleData, resetC
         candle.topY = bodyY;
         candle.bottomY = bodyY + bodyHeight;
 
-        // Check if this is a mystery candle
-        if (candle.isMystery && !candle.mysteryRevealed) {
-          // Draw white mystery candle with question mark
-          const mysteryGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
-          mysteryGradient.addColorStop(0, '#ffffff');
-          mysteryGradient.addColorStop(0.5, '#f8f9fa');
-          mysteryGradient.addColorStop(1, '#e9ecef');
-          ctx.fillStyle = mysteryGradient;
-          ctx.shadowColor = '#ffffff';
-          ctx.shadowBlur = 15;
-          
-          // Draw pulsing white mystery candle
-          const pulseIntensity = Math.sin(Date.now() * 0.008) * 0.2 + 0.8;
-          ctx.globalAlpha = pulseIntensity;
-          
-          const radius = 2;
-          ctx.beginPath();
-          ctx.roundRect(x, bodyY, candleWidth, Math.max(bodyHeight, 3), radius);
-          ctx.fill();
-          
-          // Draw question mark
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = '#333333';
-          ctx.font = 'bold 18px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText('?', x + candleWidth / 2, bodyY + bodyHeight / 2 + 6);
-          
-          ctx.shadowBlur = 0;
-        } else if (candle.isMystery && candle.mysteryRevealed) {
-          // Draw revealed mystery candle based on its true color
-          if (candle.isGreen) {
-            // Green candle gradient
-            const greenGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
-            greenGradient.addColorStop(0, '#00f5d4');
-            greenGradient.addColorStop(1, '#00d4aa');
-            ctx.fillStyle = greenGradient;
-            ctx.shadowColor = '#00d4aa';
-            ctx.shadowBlur = 8;
-          } else {
-            // Red candle gradient
-            const redGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
-            redGradient.addColorStop(0, '#ff6b7a');
-            redGradient.addColorStop(1, '#ff4757');
-            ctx.fillStyle = redGradient;
-            ctx.shadowColor = '#ff4757';
-            ctx.shadowBlur = 8;
-          }
-          
-          const radius = 2;
-          ctx.beginPath();
-          ctx.roundRect(x, bodyY, candleWidth, Math.max(bodyHeight, 3), radius);
-          ctx.fill();
-          ctx.shadowBlur = 0;
+        if (candle.isGreen) {
+          // Green candle gradient
+          const greenGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
+          greenGradient.addColorStop(0, '#00f5d4');
+          greenGradient.addColorStop(1, '#00d4aa');
+          ctx.fillStyle = greenGradient;
+          ctx.shadowColor = '#00d4aa';
+          ctx.shadowBlur = 8;
         } else {
-          // Regular candle
-          if (candle.isGreen) {
-            // Green candle gradient
-            const greenGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
-            greenGradient.addColorStop(0, '#00f5d4');
-            greenGradient.addColorStop(1, '#00d4aa');
-            ctx.fillStyle = greenGradient;
-            ctx.shadowColor = '#00d4aa';
-            ctx.shadowBlur = 8;
-          } else {
-            // Red candle gradient
-            const redGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
-            redGradient.addColorStop(0, '#ff6b7a');
-            redGradient.addColorStop(1, '#ff4757');
-            ctx.fillStyle = redGradient;
-            ctx.shadowColor = '#ff4757';
-            ctx.shadowBlur = 8;
-          }
-          
-          // Draw rounded rectangle for candle body
-          const radius = 2;
-          ctx.beginPath();
-          ctx.roundRect(x, bodyY, candleWidth, Math.max(bodyHeight, 3), radius);
-          ctx.fill();
-          ctx.shadowBlur = 0;
+          // Red candle gradient
+          const redGradient = ctx.createLinearGradient(x, bodyY, x, bodyY + bodyHeight);
+          redGradient.addColorStop(0, '#ff6b7a');
+          redGradient.addColorStop(1, '#ff4757');
+          ctx.fillStyle = redGradient;
+          ctx.shadowColor = '#ff4757';
+          ctx.shadowBlur = 8;
         }
+        
+        // Draw rounded rectangle for candle body
+        const radius = 2;
+        ctx.beginPath();
+        ctx.roundRect(x, bodyY, candleWidth, Math.max(bodyHeight, 3), radius);
+        ctx.fill();
+        ctx.shadowBlur = 0;
       });
 
       // Update parent with latest candle data including topY values

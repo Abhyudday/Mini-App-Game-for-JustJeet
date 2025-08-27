@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface GameUIProps {
   score: number;
   highScore: number;
-  gameState: 'menu' | 'playing' | 'gameOver' | 'mysteryCandle';
+  gameState: 'menu' | 'playing' | 'gameOver';
   onStartGame: () => void;
   onRestartGame: () => void;
   onShowLeaderboard: () => void;
@@ -24,7 +24,7 @@ const GameUI: React.FC<GameUIProps> = ({
     <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
       {/* Score Display */}
       <AnimatePresence>
-        {(gameState === 'playing' || gameState === 'mysteryCandle') && (
+        {gameState === 'playing' && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -74,134 +74,125 @@ const GameUI: React.FC<GameUIProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col items-center justify-center bg-black pointer-events-auto px-4"
+            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6"
           >
-            {/* Header Section - Compact Layout */}
-            <div className="text-center mb-4">
+            {/* Top Section - Logo and Buy Button */}
+            <div className="flex justify-between items-start mb-6">
               <motion.div
-                initial={{ y: -30, opacity: 0 }}
+                initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
-                className="mb-3"
               >
-                <h1 className="text-4xl font-black text-white mb-2 tracking-tight">
+                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
                   JUSTJEET
                 </h1>
-                <div className="w-full max-w-sm mx-auto bg-white rounded-lg p-3 mb-3">
-                  <div className="text-black text-xs font-mono break-all leading-tight">
-                    JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
-                  </div>
-                </div>
               </motion.div>
-
-              {/* Buy Button and DEX Links - Compact */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="flex flex-col items-center space-y-3 mb-4"
+              
+              <motion.a
+                href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.3 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-6 rounded-lg transition-all duration-200 cursor-pointer select-none pointer-events-auto"
               >
-                <a 
-                  href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-2 px-6 rounded-full text-base transition-all duration-200 shadow-lg"
-                >
-                  BUY HERE
-                </a>
-                
-                {/* DEX Logo and Socials - Compact */}
-                <div className="flex items-center space-x-4">
-                  <a 
-                    href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-1 text-white hover:text-green-400 transition-colors"
-                  >
-                    <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">DX</span>
-                    </div>
-                    <span className="text-xs">DEX</span>
-                  </a>
-                  
-                  <a 
-                    href="https://x.com/JustJeetSol?t=6f6zFN6IERRjkEjALDXpZQ&s=09"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-1 text-white hover:text-blue-400 transition-colors"
-                  >
-                    <div className="w-6 h-6 bg-black rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">𝕏</span>
-                    </div>
-                    <span className="text-xs">X</span>
-                  </a>
-                  
-                  <a 
-                    href="https://t.me/officialJustJeet"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-1 text-white hover:text-blue-500 transition-colors"
-                  >
-                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">📱</span>
-                    </div>
-                    <span className="text-xs">TG</span>
-                  </a>
-                </div>
-              </motion.div>
-
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="text-white text-sm mb-4 max-w-lg mx-auto font-light italic"
-              >
-                think you've got what it takes? test your Degen skills with our own JustJeet mini trading game below
-              </motion.p>
+                BUY HERE
+              </motion.a>
             </div>
 
-            {/* Game Preview Area - Compact */}
+            {/* Contract Address - Top White Box */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-white rounded-lg p-4 mb-6"
+            >
+              <div className="text-black text-sm font-mono break-all text-center">
+                $JustJeet CA: 9M7eYNNP4TdJCmMspKpdbEhvpdds6E5WFVTTLjXfVray
+              </div>
+            </motion.div>
+
+            {/* DEX Logo and Socials */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="flex justify-center space-x-6 mb-6"
+            >
+              {/* DEX Logo */}
+              <a
+                href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors cursor-pointer pointer-events-auto"
+              >
+                <span className="text-white text-2xl font-bold">DEX</span>
+              </a>
+              
+              {/* Social Links */}
+              <a
+                href="https://x.com/JustJeetSol?t=6f6zFN6IERRjkEjALDXpZQ&s=09"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-16 h-16 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer pointer-events-auto"
+              >
+                <span className="text-white text-2xl">𝕏</span>
+              </a>
+              
+              <a
+                href="https://t.me/officialJustJeet"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-400 transition-colors cursor-pointer pointer-events-auto"
+              >
+                <span className="text-white text-2xl">📱</span>
+              </a>
+            </motion.div>
+
+            {/* Game Introduction */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="text-center mb-8"
+            >
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <span className="text-green-400 text-xl">↗</span>
+                <p className="text-white text-lg md:text-xl font-light">
+                  think you've got what it takes? test your Degen skills with our own JustJeet mini trading game below
+                </p>
+                <span className="text-white text-xl">✕</span>
+                <span className="text-white text-xl">🎭</span>
+              </div>
+            </motion.div>
+
+            {/* Game Preview Area */}
             <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="w-full max-w-sm aspect-video bg-gray-800 rounded-lg mb-4 relative overflow-hidden"
+              className="w-full max-w-lg aspect-video bg-gray-800 rounded-lg mb-6 relative overflow-hidden mx-auto"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900 opacity-50"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-2xl font-bold text-white">JustJeet</div>
-                <div className="text-lg ml-2">🎮</div>
+                <div className="text-6xl">₿</div>
               </div>
               {highScore > 0 && (
-                <div className="absolute top-2 right-2 bg-yellow-500/20 backdrop-blur-sm rounded-lg px-2 py-1">
+                <div className="absolute top-4 right-4 bg-yellow-500/20 backdrop-blur-sm rounded-lg px-3 py-1">
                   <div className="text-yellow-400 text-xs font-semibold">BEST</div>
-                  <div className="text-white text-sm font-bold">{highScore.toLocaleString()}</div>
+                  <div className="text-white text-lg font-bold">{highScore.toLocaleString()}</div>
                 </div>
               )}
             </motion.div>
 
-            {/* Contract Address and Description - Compact */}
-            <motion.div 
-              initial={{ y: 30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="bg-green-500 text-black p-3 rounded-lg mb-4 max-w-lg mx-auto"
-            >
-              <p className="font-bold text-center mb-2 text-sm leading-tight">
-                JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
-              </p>
-              <div className="bg-black/20 rounded-lg p-2">
-                <p className="text-xs font-mono break-all text-center">
-                  $JustJeet CA: 9M7eYNNP4TdJCmMspKqpbEhvpddsSE5WFVTTLXNY2y
-                </p>
-              </div>
-            </motion.div>
-
-            {/* Play Button - Prominent */}
+            {/* Play Button */}
             <motion.button
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 1.2, type: "spring", stiffness: 200 }}
+              transition={{ delay: 1.0, type: "spring", stiffness: 200 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onStartGame}
@@ -209,20 +200,20 @@ const GameUI: React.FC<GameUIProps> = ({
                 e.preventDefault();
                 onStartGame();
               }}
-              className="w-full max-w-sm bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-3 px-6 rounded-full text-lg transition-all duration-200 shadow-lg mb-3 cursor-pointer select-none border-2 border-green-300"
+              className="w-full max-w-md bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-4 px-8 rounded-full text-xl transition-all duration-200 shadow-lg mb-6 cursor-pointer select-none mx-auto pointer-events-auto"
               style={{ 
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation'
               }}
             >
-              PLAY JUSTJEET GAME
+              PLAY GAME
             </motion.button>
 
-            {/* Leaderboard Button - Compact */}
+            {/* Leaderboard Button */}
             <motion.button
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.4 }}
+              transition={{ delay: 1.2 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={onShowLeaderboard}
@@ -230,7 +221,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 e.preventDefault();
                 onShowLeaderboard();
               }}
-              className="text-green-400 hover:text-green-300 active:text-green-500 font-semibold transition-colors duration-200 cursor-pointer select-none text-sm"
+              className="text-green-400 hover:text-green-300 active:text-green-500 font-semibold transition-colors duration-200 cursor-pointer select-none pointer-events-auto text-center block mx-auto mb-6"
               style={{ 
                 WebkitTapHighlightColor: 'transparent',
                 touchAction: 'manipulation'
@@ -238,6 +229,18 @@ const GameUI: React.FC<GameUIProps> = ({
             >
               🏆 View Leaderboard
             </motion.button>
+
+            {/* Bottom Green Bar - Contract Address */}
+            <motion.div 
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 1.4 }}
+              className="bg-green-500 text-black p-4 rounded-lg max-w-2xl mx-auto w-full"
+            >
+              <p className="font-bold text-center text-sm">
+                JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
+              </p>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
