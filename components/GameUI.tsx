@@ -21,7 +21,7 @@ const GameUI: React.FC<GameUIProps> = ({
   onShowLeaderboard,
 }) => {
   return (
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 20 }}>
       {/* Score Display */}
       <AnimatePresence>
         {gameState === 'playing' && (
@@ -67,19 +67,19 @@ const GameUI: React.FC<GameUIProps> = ({
         )}
       </AnimatePresence>
 
-            {/* Start Menu */}
+                  {/* Start Menu */}
       <AnimatePresence>
         {gameState === 'menu' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col bg-black pointer-events-auto px-4 py-6 overflow-y-auto"
+            className="w-full min-h-screen bg-black pointer-events-auto px-4 py-8 overflow-y-auto"
             style={{ 
-              minHeight: '100vh',
               WebkitOverflowScrolling: 'touch',
               overscrollBehavior: 'contain',
-              paddingBottom: '2rem'
+              height: 'auto',
+              maxHeight: 'none'
             }}
           >
             {/* Top Section - Logo and Buy Button */}
