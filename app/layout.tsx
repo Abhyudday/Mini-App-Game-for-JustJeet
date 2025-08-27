@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Crypto Jump Game',
-  description: 'Jump over the red line and survive as long as possible!',
+  title: 'JustJeet',
+  description: 'JustJeet: The ultimate meme coin trading game!',
 }
 
 export const viewport: Viewport = {

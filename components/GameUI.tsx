@@ -85,7 +85,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 className="flex-1 text-center"
               >
                 <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-                  CRYPTOJUMP
+                  JustJeet
                 </h1>
               </motion.div>
               
