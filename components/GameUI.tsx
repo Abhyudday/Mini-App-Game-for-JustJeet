@@ -85,30 +85,68 @@ const GameUI: React.FC<GameUIProps> = ({
                 className="mb-6"
               >
                 <h1 className="text-5xl md:text-6xl font-black text-white mb-2 tracking-tight">
-                  CRYPTOJUMP
+                  JUSTJEET
                 </h1>
                 <div className="w-full max-w-md mx-auto bg-white rounded-lg p-4 mb-4">
                   <div className="text-black text-sm font-mono break-all">
-                    $CryptoJump: 9M7eYNNP4TQJCmMspKqpbEhvpddsSE5WFVTTLXNY2y
+                    JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
                   </div>
                 </div>
               </motion.div>
 
-              {/* Social Icons */}
+              {/* Buy Button and DEX Links */}
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="flex justify-center space-x-6 mb-8"
+                className="flex flex-col items-center space-y-4 mb-6"
               >
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xl">📱</span>
-                </div>
-                <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xl">𝕏</span>
-                </div>
-                <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xl">💀</span>
+                <a 
+                  href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-green-500 hover:bg-green-400 active:bg-green-600 text-black font-bold py-3 px-8 rounded-full text-lg transition-all duration-200 shadow-lg"
+                >
+                  BUY HERE
+                </a>
+                
+                {/* DEX Logo and Socials */}
+                <div className="flex items-center space-x-6">
+                  <a 
+                    href="https://dexscreener.com/solana/GbU8mGX8wtDFWysGLBhQXbvRzeqBdMrvCuwqKNWJ7kwu"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 text-white hover:text-green-400 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">DX</span>
+                    </div>
+                    <span className="text-sm">DEXScreener</span>
+                  </a>
+                  
+                  <a 
+                    href="https://x.com/JustJeetSol?t=6f6zFN6IERRjkEjALDXpZQ&s=09"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 text-white hover:text-blue-400 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">𝕏</span>
+                    </div>
+                    <span className="text-sm">Twitter</span>
+                  </a>
+                  
+                  <a 
+                    href="https://t.me/officialJustJeet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 text-white hover:text-blue-500 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">📱</span>
+                    </div>
+                    <span className="text-sm">Telegram</span>
+                  </a>
                 </div>
               </motion.div>
 
@@ -118,7 +156,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 transition={{ delay: 0.6 }}
                 className="text-white text-lg md:text-xl mb-8 max-w-2xl mx-auto font-light italic"
               >
-                think you've got what it takes? test your Degen skills with our own CryptoJump mini trading game below
+                think you've got what it takes? test your Degen skills with our own JustJeet mini trading game below
               </motion.p>
             </div>
 
@@ -131,7 +169,8 @@ const GameUI: React.FC<GameUIProps> = ({
             >
               <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900 opacity-50"></div>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-6xl">₿</div>
+                <div className="text-4xl font-bold text-white">JustJeet</div>
+                <div className="text-2xl ml-2">🎮</div>
               </div>
               {highScore > 0 && (
                 <div className="absolute top-4 right-4 bg-yellow-500/20 backdrop-blur-sm rounded-lg px-3 py-1">
@@ -141,16 +180,21 @@ const GameUI: React.FC<GameUIProps> = ({
               )}
             </motion.div>
 
-            {/* Description */}
+            {/* Contract Address and Description */}
             <motion.div 
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1 }}
               className="bg-green-500 text-black p-4 rounded-lg mb-8 max-w-2xl mx-auto"
             >
-              <p className="font-bold text-center">
-                CryptoJump: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
+              <p className="font-bold text-center mb-3">
+                JustJeet: The ultimate meme coin roasting crypto's paper-handed jeets—panic sellers who buy high, sell low, and fuel the chaos. Jeets gonna jeet!
               </p>
+              <div className="bg-black/20 rounded-lg p-3">
+                <p className="text-sm font-mono break-all text-center">
+                  $JustJeet CA: 9M7eYNNP4TdJCmMspKpdbEhvpdds6E5WFVTTLjXfVray
+                </p>
+              </div>
             </motion.div>
 
             {/* Play Button */}
@@ -171,7 +215,7 @@ const GameUI: React.FC<GameUIProps> = ({
                 touchAction: 'manipulation'
               }}
             >
-              PLAY GAME
+              PLAY JUSTJEET GAME
             </motion.button>
 
             {/* Leaderboard Button */}
