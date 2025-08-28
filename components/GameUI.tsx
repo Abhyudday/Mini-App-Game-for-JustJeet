@@ -74,10 +74,11 @@ const GameUI: React.FC<GameUIProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="w-full bg-black pointer-events-auto px-4 py-8"
+            className="absolute inset-0 w-full bg-black pointer-events-auto px-4 py-8 overflow-y-auto"
             style={{ 
               paddingTop: 'max(env(safe-area-inset-top), 3rem)',
-              paddingBottom: '2rem'
+              paddingBottom: '2rem',
+              zIndex: 10
             }}
           >
             {/* Top Section - Logo and Buy Button */}

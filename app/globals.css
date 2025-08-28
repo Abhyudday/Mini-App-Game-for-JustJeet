@@ -49,9 +49,10 @@ a {
 }
 
 .game-container.menu-mode {
-  overflow: visible;
-  height: auto;
-  position: relative;
+  overflow: visible !important;
+  height: auto !important;
+  position: relative !important;
+  min-height: 100vh;
 }
 
 .character {
