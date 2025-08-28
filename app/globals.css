@@ -48,6 +48,12 @@ a {
   user-select: none;
 }
 
+.game-container.menu-mode {
+  overflow: visible;
+  height: auto;
+  position: relative;
+}
+
 .character {
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
@@ -91,11 +97,16 @@ a {
   
   .game-container {
     height: 100dvh; /* Use dynamic viewport height on mobile */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+  }
+  
+  .game-container.menu-mode {
+    height: auto;
+    overflow: visible;
   }
   
   /* Ensure buttons are large enough for touch */

@@ -641,7 +641,7 @@ const Game: React.FC = () => {
   }, [gameState.state]);
 
   return (
-    <div className="game-container">
+    <div className={`game-container ${gameState.state === 'menu' ? 'menu-mode' : ''}`}>
       {/* Background Chart */}
       <CryptoChart 
         cameraX={gameState.cameraX}

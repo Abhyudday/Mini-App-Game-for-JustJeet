@@ -74,16 +74,14 @@ const GameUI: React.FC<GameUIProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="w-full min-h-screen bg-black pointer-events-auto px-4 py-8 overflow-y-auto pt-[max(env(safe-area-inset-top),1.5rem)]"
+            className="w-full bg-black pointer-events-auto px-4 py-8"
             style={{ 
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain',
-              height: 'auto',
-              maxHeight: 'none'
+              paddingTop: 'max(env(safe-area-inset-top), 3rem)',
+              paddingBottom: '2rem'
             }}
           >
             {/* Top Section - Logo and Buy Button */}
-            <div className="flex justify-between items-start mb-6 mt-2">
+            <div className="flex justify-between items-start mb-6 mt-8">
               <motion.div
                 initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -117,8 +115,23 @@ const GameUI: React.FC<GameUIProps> = ({
               transition={{ delay: 0.4 }}
               className="mb-6"
             >
-              <div className="text-white text-sm md:text-base font-mono font-semibold break-all text-center tracking-wide">
+              <div 
+                className="text-white text-sm md:text-base font-mono font-semibold break-all text-center tracking-wide cursor-pointer hover:text-green-400 transition-colors duration-200 select-all"
+                onClick={() => {
+                  navigator.clipboard.writeText('9M7eYNNP4TdJCmMspKpdbEhvpdds6E5WFVTTLjXfVray');
+                  // Optional: Add visual feedback
+                  const element = document.activeElement as HTMLElement;
+                  if (element) {
+                    element.style.color = '#22c55e';
+                    setTimeout(() => {
+                      element.style.color = '';
+                    }, 1000);
+                  }
+                }}
+                title="Click to copy contract address"
+              >
                 $JustJeet CA: 9M7eYNNP4TdJCmMspKpdbEhvpdds6E5WFVTTLjXfVray
+                <span className="ml-2 text-green-400 opacity-70">📋</span>
               </div>
             </motion.div>
 
