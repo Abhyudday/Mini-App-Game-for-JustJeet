@@ -183,7 +183,7 @@ const GameUI: React.FC<GameUIProps> = ({
               <div className="flex items-center justify-center space-x-3 mb-4">
                 <span className="text-green-400 text-xl">↗</span>
                 <p className="text-white text-lg md:text-xl font-light">
-                  think you've got what it takes? test your Degen skills with our own JustJeet mini trading game below
+                  Think you've got what it takes? test your Degen skills with our own JustJeet mini trading game below
                 </p>
                 <span className="text-white text-xl">✕</span>
                 <span className="text-white text-xl">🎭</span>
