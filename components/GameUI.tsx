@@ -74,7 +74,7 @@ const GameUI: React.FC<GameUIProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="w-full min-h-screen bg-black pointer-events-auto px-4 py-8 overflow-y-auto"
+            className="w-full min-h-screen bg-black pointer-events-auto px-4 py-8 overflow-y-auto pt-[max(env(safe-area-inset-top),1.5rem)]"
             style={{ 
               WebkitOverflowScrolling: 'touch',
               overscrollBehavior: 'contain',
@@ -83,7 +83,7 @@ const GameUI: React.FC<GameUIProps> = ({
             }}
           >
             {/* Top Section - Logo and Buy Button */}
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-6 mt-2">
               <motion.div
                 initial={{ y: -50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
