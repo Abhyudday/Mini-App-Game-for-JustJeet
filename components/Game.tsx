@@ -625,18 +625,20 @@ const Game: React.FC = () => {
       e.preventDefault();
     };
 
-    document.addEventListener('touchmove', preventDefault, { passive: false });
-    document.addEventListener('gesturestart', preventDefault);
-    document.addEventListener('gesturechange', preventDefault);
-    document.addEventListener('gestureend', preventDefault);
+    if (gameState.state === 'playing') {
+      document.addEventListener('touchmove', preventDefault, { passive: false });
+      document.addEventListener('gesturestart', preventDefault);
+      document.addEventListener('gesturechange', preventDefault);
+      document.addEventListener('gestureend', preventDefault);
+    }
 
     return () => {
-      document.removeEventListener('touchmove', preventDefault);
-      document.removeEventListener('gesturestart', preventDefault);
-      document.removeEventListener('gesturechange', preventDefault);
-      document.removeEventListener('gestureend', preventDefault);
+      document.removeEventListener('touchmove', preventDefault as any);
+      document.removeEventListener('gesturestart', preventDefault as any);
+      document.removeEventListener('gesturechange', preventDefault as any);
+      document.removeEventListener('gestureend', preventDefault as any);
     };
-  }, []);
+  }, [gameState.state]);
 
   return (
     <div className="game-container">

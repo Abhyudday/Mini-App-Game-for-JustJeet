@@ -197,10 +197,7 @@ const GameUI: React.FC<GameUIProps> = ({
               transition={{ delay: 0.8 }}
               className="w-full max-w-lg aspect-video bg-gray-800 rounded-lg mb-6 relative overflow-hidden mx-auto"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900 opacity-50"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-6xl">₿</div>
-              </div>
+              <img src="/chart-preview.svg" alt="Chart preview" className="absolute inset-0 w-full h-full object-cover opacity-90" />
               {highScore > 0 && (
                 <div className="absolute top-4 right-4 bg-yellow-500/20 backdrop-blur-sm rounded-lg px-3 py-1">
                   <div className="text-yellow-400 text-xs font-semibold">BEST</div>

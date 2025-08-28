@@ -1,0 +1,25 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a3441"/>
+      <stop offset="100%" stop-color="#1f2732"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#bg)"/>
+  <g opacity="0.25" stroke="#ffffff" stroke-width="1">
+    <line x1="0" y1="120" x2="1280" y2="120"/>
+    <line x1="0" y1="240" x2="1280" y2="240"/>
+    <line x1="0" y1="360" x2="1280" y2="360"/>
+    <line x1="0" y1="480" x2="1280" y2="480"/>
+    <line x1="0" y1="600" x2="1280" y2="600"/>
+  </g>
+  <polyline fill="none" stroke="url(#line)" stroke-width="4" points="
+    0,520 60,540 120,500 180,530 240,480 300,500 360,420 420,460 480,410 540,430 600,360
+    660,420 720,380 780,460 840,420 900,500 960,460 1020,520 1080,480 1140,560 1200,520 1280,580
+  "/>
+  <circle cx="1200" cy="520" r="8" fill="#22c55e"/>
+</svg>
