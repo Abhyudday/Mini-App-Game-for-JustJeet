@@ -21,7 +21,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="w-full h-screen overflow-hidden">
+    <main className="w-full min-h-screen overflow-y-auto">
       <Game />
     </main>
   );

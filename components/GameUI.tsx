@@ -115,9 +115,9 @@ const GameUI: React.FC<GameUIProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-white rounded-lg p-4 mb-6"
+              className="mb-6"
             >
-              <div className="text-black text-sm font-mono break-all text-center">
+              <div className="text-white text-sm md:text-base font-mono font-semibold break-all text-center tracking-wide">
                 $JustJeet CA: 9M7eYNNP4TdJCmMspKpdbEhvpdds6E5WFVTTLjXfVray
               </div>
             </motion.div>
