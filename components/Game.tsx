@@ -198,6 +198,16 @@ const Game: React.FC = () => {
       setGameState(prev => {
         if (prev.state !== 'playing' || prev.isDead) return prev;
 
+        // SAFETY CHECK: Ensure red candle timer is reset when game starts
+        if (prev.score === 0 && prev.lastRedCandleContact > 0) {
+          console.log('SAFETY RESET: Clearing red candle timer at game start');
+          return {
+            ...prev,
+            lastRedCandleContact: 0,
+            isDead: false
+          };
+        }
+
         // FIRST PRIORITY: Check red candle grace period expiration (but not while jumping)
         if (prev.lastRedCandleContact > 0 && !prev.isDead && !prev.isJumping) {
           const currentTime = Date.now();
@@ -541,23 +551,43 @@ const Game: React.FC = () => {
     // Only reset chart if it's the very first game or if requested
     setResetChart(candlesRef.current.length === 0);
     
-    setGameState(prev => ({
-      ...prev,
-      state: 'playing',
-      score: 0,
-      characterPosition: { x: 150, y: getGroundY() - 50 }, // Start on first candle body top
-      characterVelocity: 0,
-      isJumping: false,
-      isDead: false,
-      currentCandleIndex: 0, // Start at first candle
-      cameraX: 0,
-      canLand: false,
-      redCandleGraceTime: 600, // Reset grace period (0.6 seconds) - HARDER
-      lastRedCandleContact: 0,
-      jumpStartX: 150,
-      jumpTargetX: 150,
-      jumpProgress: 1, // Not jumping initially
-    }));
+    // Clear any existing timers or state that might persist
+    if (gameLoopRef.current) {
+      cancelAnimationFrame(gameLoopRef.current);
+      gameLoopRef.current = undefined;
+    }
+    
+    setGameState(prev => {
+      // Ensure complete reset of all game state
+      const newState: GameState = {
+        ...prev,
+        state: 'playing' as const,
+        score: 0,
+        characterPosition: { x: 150, y: getGroundY() - 50 }, // Start on first candle body top
+        characterVelocity: 0,
+        isJumping: false,
+        isDead: false,
+        currentCandleIndex: 0, // Start at first candle
+        cameraX: 0,
+        canLand: false,
+        redCandleGraceTime: 600, // Reset grace period (0.6 seconds) - HARDER
+        lastRedCandleContact: 0, // CRITICAL: Reset red candle contact timer
+        jumpStartX: 150,
+        jumpTargetX: 150,
+        jumpProgress: 1, // Not jumping initially
+      };
+      
+      // Debug logging for red candle timer reset
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Game Reset - Red Candle Timer:', {
+          lastRedCandleContact: newState.lastRedCandleContact,
+          redCandleGraceTime: newState.redCandleGraceTime,
+          isDead: newState.isDead
+        });
+      }
+      
+      return newState;
+    });
     
     // Reset the resetChart flag after a short delay
     setTimeout(() => setResetChart(false), 100);
