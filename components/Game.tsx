@@ -80,29 +80,44 @@ const Game: React.FC = () => {
   // Jump function
   const jump = useCallback(() => {
     const now = Date.now();
-          if (now - lastTouchRef.current < 300) return; // Slightly slower tapping for more precision - HARDER
+    if (now - lastTouchRef.current < 300) return; // Slightly slower tapping for more precision - HARDER
     lastTouchRef.current = now;
 
     if (gameState.state === 'playing' && !gameState.isDead && !gameState.isJumping) {
       setGameState(prev => {
         // Find the next candle position
         const candles = candlesRef.current;
-        if (candles.length === 0) return prev;
+        if (candles.length === 0) {
+          console.warn('No candles available for jump');
+          return prev;
+        }
         
-        // Find current candle (where character is standing)
+        // Find current candle (where character is standing) - more tolerant on mobile
         const currentCandle = candles.find(candle => 
-          Math.abs(candle.x - prev.characterPosition.x) < 35
+          Math.abs(candle.x - prev.characterPosition.x) < 50 // Increased tolerance for mobile
         );
         
-        // Find next candle after current position
-        const nextCandle = candles.find(candle => candle.x > prev.characterPosition.x);
+        // Find next candle after current position - more robust search
+        let nextCandle = candles.find(candle => candle.x > prev.characterPosition.x);
+        
+        // If no next candle found, try to find the closest one ahead
+        if (!nextCandle) {
+          const candlesAhead = candles.filter(candle => candle.x > prev.characterPosition.x);
+          if (candlesAhead.length > 0) {
+            nextCandle = candlesAhead.reduce((closest, candle) => 
+              Math.abs(candle.x - prev.characterPosition.x) < Math.abs(closest.x - prev.characterPosition.x) ? candle : closest
+            );
+          }
+        }
         
         // Debug logging
         if (process.env.NODE_ENV === 'development') {
           console.log('Jump attempt:', {
             characterX: prev.characterPosition.x,
             candlesCount: candles.length,
-            nextCandle: nextCandle ? { x: nextCandle.x, topY: nextCandle.topY } : null
+            currentCandle: currentCandle ? { x: currentCandle.x, topY: currentCandle.topY } : null,
+            nextCandle: nextCandle ? { x: nextCandle.x, topY: nextCandle.topY } : null,
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
           });
         }
         
@@ -111,44 +126,44 @@ const Game: React.FC = () => {
           return prev;
         }
         
-         // Calculate adaptive jump force based on height difference
-         let jumpForce = JUMP_FORCE; // Base jump force (-8)
-         
-         if (currentCandle && nextCandle.topY !== undefined && currentCandle.topY !== undefined) {
-           // Calculate height difference (negative means next candle is higher)
-           const heightDifference = nextCandle.topY - currentCandle.topY;
-           
-           if (heightDifference < 0) {
-             // Next candle is higher - calculate required force
-             const requiredHeight = Math.abs(heightDifference) + 30; // Extra clearance
-             
-             // Safety check to prevent invalid calculations
-             if (requiredHeight > 0 && GRAVITY > 0) {
-               const calculatedForce = -Math.sqrt(2 * GRAVITY * requiredHeight);
-               
-               // Validate the calculated force
-               if (!isNaN(calculatedForce) && isFinite(calculatedForce)) {
-                 jumpForce = Math.max(calculatedForce, -30); // Cap at -30 for very tall candles
-               }
-             }
-           }
-           
-           // Ensure jump force is always valid
-           if (isNaN(jumpForce) || !isFinite(jumpForce)) {
-             console.warn('Invalid jump force calculated, using default:', jumpForce);
-             jumpForce = JUMP_FORCE;
-           }
-           
-           // Debug logging for development
-           if (process.env.NODE_ENV === 'development') {
-             console.log('Jump calculation:', {
-               heightDifference,
-               jumpForce,
-               currentCandleY: currentCandle.topY,
-               nextCandleY: nextCandle.topY
-             });
-           }
-         }
+        // Calculate adaptive jump force based on height difference
+        let jumpForce = JUMP_FORCE; // Base jump force (-8)
+        
+        if (currentCandle && nextCandle.topY !== undefined && currentCandle.topY !== undefined) {
+          // Calculate height difference (negative means next candle is higher)
+          const heightDifference = nextCandle.topY - currentCandle.topY;
+          
+          if (heightDifference < 0) {
+            // Next candle is higher - calculate required force
+            const requiredHeight = Math.abs(heightDifference) + 30; // Extra clearance
+            
+            // Safety check to prevent invalid calculations
+            if (requiredHeight > 0 && GRAVITY > 0) {
+              const calculatedForce = -Math.sqrt(2 * GRAVITY * requiredHeight);
+              
+              // Validate the calculated force
+              if (!isNaN(calculatedForce) && isFinite(calculatedForce)) {
+                jumpForce = Math.max(calculatedForce, -30); // Cap at -30 for very tall candles
+              }
+            }
+          }
+          
+          // Ensure jump force is always valid
+          if (isNaN(jumpForce) || !isFinite(jumpForce)) {
+            console.warn('Invalid jump force calculated, using default:', jumpForce);
+            jumpForce = JUMP_FORCE;
+          }
+          
+          // Debug logging for development
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Jump calculation:', {
+              heightDifference,
+              jumpForce,
+              currentCandleY: currentCandle.topY,
+              nextCandleY: nextCandle.topY
+            });
+          }
+        }
         
         // Final safety check - ensure we have a valid jump force
         const finalJumpForce = (jumpForce && isFinite(jumpForce) && jumpForce < 0) ? jumpForce : JUMP_FORCE;
@@ -186,7 +201,7 @@ const Game: React.FC = () => {
           ...prev, 
           isJumping: false
         }));
-             }, 350); // Faster jump timing - HARDER
+      }, 350); // Faster jump timing - HARDER
     }
   }, [gameState.state, gameState.isDead, gameState.isJumping]);
 
@@ -625,9 +640,17 @@ const Game: React.FC = () => {
   useEffect(() => {
     const handleInteraction = (e: Event) => {
       if (gameState.state === 'playing') {
-      e.preventDefault();
+        e.preventDefault();
         e.stopPropagation();
-      jump();
+        jump();
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (gameState.state === 'playing') {
+        e.preventDefault();
+        e.stopPropagation();
+        jump();
       }
     };
 
@@ -638,12 +661,15 @@ const Game: React.FC = () => {
       }
     };
 
-    document.addEventListener('touchstart', handleInteraction, { passive: false });
+    // Add multiple touch event types for better mobile support
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchend', handleInteraction, { passive: false });
     document.addEventListener('click', handleInteraction);
     document.addEventListener('keydown', handleKeyPress);
 
     return () => {
-      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleInteraction);
       document.removeEventListener('click', handleInteraction);
       document.removeEventListener('keydown', handleKeyPress);
     };
