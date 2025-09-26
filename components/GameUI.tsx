@@ -174,7 +174,7 @@ const GameUI: React.FC<GameUIProps> = ({
               </a>
               
               <a
-                href="https://t.me/officialJustJeet"
+                href="https://t.me/OfficialJustJeetSol"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-16 h-16 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer pointer-events-auto p-2"
