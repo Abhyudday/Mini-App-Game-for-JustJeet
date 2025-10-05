@@ -4,9 +4,12 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
+# Install system deps required by Next.js (and sharp when present)
+RUN apk add --no-cache libc6-compat
+
 # Install dependencies (including dev dependencies for build)
 COPY package*.json ./
-RUN npm ci && npm cache clean --force
+RUN npm ci --omit=optional && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -24,5 +27,5 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Start the application
+# Start the application using the standalone output for smaller image
 CMD ["npm", "start"]
