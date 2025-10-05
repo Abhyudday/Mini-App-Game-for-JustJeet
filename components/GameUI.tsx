@@ -185,6 +185,19 @@ const GameUI: React.FC<GameUIProps> = ({
                   className="w-full h-full object-contain"
                 />
               </a>
+              
+              <a
+                href="https://discord.gg/KRrqQQC43"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-16 h-16 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors cursor-pointer pointer-events-auto p-2"
+              >
+                <img 
+                  src="https://www.svgrepo.com/show/353655/discord-icon.svg" 
+                  alt="Discord" 
+                  className="w-full h-full object-contain"
+                />
+              </a>
             </motion.div>
 
             {/* Game Introduction */}
