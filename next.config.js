@@ -1,12 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable Next/Image optimization in Docker to avoid native sharp dependency
+  output: 'standalone',
   images: {
     domains: [],
-    unoptimized: true,
   },
-  // Create a smaller production bundle with all server deps included
-  output: 'standalone',
   async headers() {
     return [
       {
